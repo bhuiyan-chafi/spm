@@ -1,13 +1,15 @@
 #include <iostream>
 #include <ctime>
 #include <vector>
-
+// constexpr int n = 1024;
+// double A[n][n];
+// double B[n][n];
+// double C[n][n];
 int main()
 {
     int n = 4096;
     clock_t start, end;
     double cpu_time_used;
-
     // Define matrices A, B, and C using vectors in C++
     std::vector<std::vector<double>> A(n, std::vector<double>(n));
     std::vector<std::vector<double>> B(n, std::vector<double>(n));
@@ -16,17 +18,17 @@ int main()
     // Start the clock
     start = clock();
 
-    // 3-step nested for loop
-    for (int i = 0; i < n; ++i)
+    // 3-step nested for loop[try with i,j,k/i,k,j/k,i,j]
+    for (int k = 0; k < n; ++k)
     {
-        for (int j = 0; j < n; ++j)
+        for (int i = 0; i < n; ++i)
         {
-            for (int k = 0; k < n; ++k)
+            for (int j = 0; j < n; ++j)
             {
-                C[i][j] = A[i][k] * B[j][k];
+                C[i][j] = A[i][k] * B[k][j];
             }
         }
-        std::cout << "iteration i: " << i << "\n";
+        std::cout << "iteration i: " << k << "\n";
     }
 
     // Stop the clock
