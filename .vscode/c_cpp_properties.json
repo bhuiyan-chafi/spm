@@ -1,0 +1,36 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "compilerPath": "/opt/opencilk/bin/clang++",
+      "intelliSenseMode": "linux-clang-x64",
+      "cStandard": "c11",
+      "cppStandard": "gnu++17",
+      "compilerArgs": [
+        "-std=gnu++17",
+        "-fopencilk"                // enable Cilk extensions
+      ],
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/opt/opencilk/include",                        // Cilk headers
+        "/usr/include/c++/12",                          // standard C++ headers
+        "/usr/lib/gcc/x86_64-linux-gnu/12/include",     // GCC driver support headers
+        "/opt/opencilk/lib/clang/16/include",           // Clang built-ins
+        "/usr/local/include",                           // any local installs
+        "/usr/include/x86_64-linux-gnu",                // glibc arch-specific
+        "/usr/include"                                  // glibc
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}",
+          "/usr/include/c++/12",
+          "/usr/lib/gcc/x86_64-linux-gnu/12/include",
+          "/opt/opencilk/include",
+          "/opt/opencilk/lib/clang/16/include",
+          "/usr/include"
+        ]
+      }
+    }
+  ],
+  "version": 4
+}
