@@ -4,7 +4,7 @@
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
 using namespace std;
-constexpr int n = 4096;
+constexpr int n = 3072;
 double A[n][n];
 double B[n][n];
 double C[n][n];
@@ -22,13 +22,13 @@ int main()
     start = clock();
 
     // 3-step nested for loop[try with i,j,k/i,k,j/k,i,j]
-    cilk_for(int k = 0; k < n; ++k)
+    cilk_for(int i = 0; i < n; ++i)
     {
-        for (int j = 0; j < n; ++j)
+        for (int k = 0; k < n; ++k)
         {
-            cilk_for(int i = 0; i < n; ++i)
+            cilk_for(int j = 0; j < n; ++j)
             {
-                C[i][j] = A[i][k] * B[k][j];
+                C[i][j] += A[i][k] * B[k][j];
             }
         }
     }
