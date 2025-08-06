@@ -26,13 +26,15 @@ We can use but vectors allow us to to do more when the size is dynamic. Traditio
 
 A pointer simply points to the memory location of a variables. But a pointer also is stored in a memory location. So, int *pointer = &x; here the `*pointer` = the numerical value of the variable, `pointer` = the memory location of the variable and `&pointer` = is the memory location of the pointer itself.
 
+    Reference is clone of the actual variable that is connected by heart. Whatever you do to each of them will reflect on each other. Why not another variable? Because another variables just hold the current value. If you change the main value later it's not gonna update automatically on the other one, but reference does. So, the main reason is to avoid copy of the value if your program doesn't need it.
+
 ## Cache miss test using `valgrind` and `perf`
 
 For Valgrind:
 
     valgrind --tool=cachegrind ./loop_unroll 
 
-And for perf: 
+And for perf:
 
     sudo perf stat --event cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-icache-loads,L1-icache-load-misses,dTLB-loads,dTLB-load-misses,L2_RQSTS.ALL_DEMAND_DATA_RD,L2_RQSTS.MISS,LLC-loads,LLC-load-misses ./loop_unroll
 

@@ -52,5 +52,6 @@
         "iomanip": "cpp",
         "sstream": "cpp",
         "cinttypes": "cpp"
-    }
+    },
+    "cmake.ignoreCMakeListsMissing": true
 }

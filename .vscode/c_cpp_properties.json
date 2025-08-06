@@ -4,10 +4,11 @@
             "name": "Linux",
             "compilerPath": "/opt/opencilk/bin/clang++",
             "intelliSenseMode": "linux-clang-x64",
-            "cStandard": "c11",
-            "cppStandard": "gnu++17",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
             "compilerArgs": [
                 "-std=gnu++17",
+                "-std=c++17",
                 "-fopencilk"
             ],
             "browse": {
@@ -22,7 +23,7 @@
             },
             "includePath": [
                 "${default}",
-                "${workspaceFolder}/spmcode1/include"
+                "${workspaceFolder}/spmcode1(loop_unrolling)/include"
             ]
         }
     ],
