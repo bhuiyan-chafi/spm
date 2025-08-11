@@ -1,0 +1,11 @@
+# Ignore everything at the repo root
+/*
+
+# Keep .gitignore itself
+!/.gitignore
+
+# Keep these folders and everything inside them
+!/include/
+!/include/**
+!/my_test/
+!/my_test/**
