@@ -36,3 +36,30 @@ Will be handled as `int` and `float` at compile time.
 Well! auto is not for dynamic typing but type deducing. In other words writing clean code when you have a complex data-type.
 
 >vector<vector<>,vector<>> something;
+
+## Why functors?
+
+Provides an easier, cleaner style to pass parameters and function calls. If you see the [example](./class_temp), here we have two templates that contains function calls. In the first template when we called the `checkCurrentValue` we had to access it like objects of a class `tracker.checkCurrentValue(value)`. Which is fine but we have just one value in the `struct`! So, we can make more clean using functors:
+
+```cpp
+template <typename X>
+struct EvenOddDetector
+{
+    X value;
+    EvenOddDetector(X val) : value(val) {};
+    bool operator()(int currentValue)
+    {
+        if (currentValue > 0 && currentValue % 2 == 0)
+        {
+            return true;
+        }
+        return false;
+    }
+};
+```
+
+and later we just pass the parameter using the object of the `class`.
+
+```cpp
+if (detector(value)) //where detector is the value of the class
+```
