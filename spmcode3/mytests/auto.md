@@ -67,4 +67,4 @@ If you change the type of an expression later, you don’t have to chase down ev
 
 ## Bottom Line
 
-`auto` isn’t “dynamic typing.” It’s **static, compiler-driven shorthand**. You still get exactly one, strong type—just without having to write it out in full every time.
+`auto` isn’t “dynamic typing.” It’s **static, compiler-driven shorthand**. You still get exactly one, strong type—just without having to write it out in full every time, which means you use it when  you have already decided the type before with initialization.
