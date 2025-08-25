@@ -34,7 +34,7 @@ The loop is totally independent because we are just trying to find the maximum v
 
 ## Applying the reduction
 
-When we accumulate several values into one scalar variable, we should use the `reduction` pragma. It tells explicitly that the loop is not dependent and we can divide it into SIMD lanes and perform the operations. And later the value can be accumulated into one scalar variable later. If we don't mention `reduction(operation:variable)` the compiler later finds it out if we use flags. But mentioning gives the compiler an explicit hint that it is independent.
+When we accumulate several values into one scalar variable, we should use the `reduction` pragma. It tells explicitly that the loop is not dependent and we can divide it into SIMD lanes and perform the operations. And later the value can be accumulated into one scalar variable. If we don't mention `reduction(operation:variable)` the compiler later finds it out if we use flags. But mentioning gives the compiler an explicit hint that it is independent.
 
 ```cpp
     #pragma omp simd reduction(max : max_val)
@@ -47,11 +47,25 @@ I did the test in two machines: my own dumb laptop(2 core, 4 thread), and our sp
 
 |Machine|Program|Size|Performance(seconds)|
 |:---|:----:|:---:|----:|
-|dumb|plain|100'000'000|0.826157|
-|dumb|auto|100'000'000|0.177588|
-|spmcluster|plain|100'000'000||
-|spmcluster|auto|100'000'000||
-|dumb|plain|900'000'000|7.48695|
-|dumb|auto|900'000'000|1.59248|
-|spmcluster|plain|900'000'000||
-|spmcluster|auto|900'000'000||
+|dumb|plain|16'000'000(16M)|0.132719s|
+|dumb|auto|16'000'000(16M)|0.0345315s|
+|dumb|avx|16'000'000(16M)|0.0364775s|
+|spmcluster|plain|16'000'000(16M)||
+|spmcluster|auto|16'000'000(16M)||
+|spmcluster|avx|16'000'000(16M)||
+
+## which part the compiler couldn't vectorize automatically?
+
+First we tested the vectorization without the flags:
+
+```bash
+g++ -O3 -fopt-info-vec-missed softmax_auto.cpp 2>&1 | grep -E "^softmax_auto.cpp:"
+```
+
+Then with proper flags:
+
+```bash
+g++ -O3 -march=native -ftree-vectorize -ffast-math -fopt-info-vec-missed softmax_auto.cpp 2>&1 | grep -E "^softmax_auto.cpp:"
+```
+
+The results are pretty overwhelming. With proper flag all the loops in softmax_auto() were vectorized.
