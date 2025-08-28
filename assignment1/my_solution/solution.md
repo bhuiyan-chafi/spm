@@ -87,7 +87,7 @@ $ ./softmax_auto 16000000
 
 **What is this alignment**?
 
-Aligned means the starting and ending memory address of our allocator is exactly 32bytes distant. Because avx2 is 256bits=32bytes(4byte each float, total 8float). If the starting address is 0x00 then the next address will be 0x20, 0x40 and so on. 
+Aligned means the starting and ending memory address of our allocator is exactly 32bytes distant. Because avx2 is 256bits=32bytes(4byte each float, total 8float). If the starting address is 0x00 then the next address will be 0x20, 0x40 and so on.
 
 ```cpp
 std::vector<float> input = generate_random_input(K);
