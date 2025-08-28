@@ -50,9 +50,9 @@ I did the test in two machines: my own dumb laptop(2 core, 4 thread), and our sp
 |dumb|plain|16'000'000(16M)|0.132719s|
 |dumb|auto|16'000'000(16M)|0.0345315s|
 |dumb|avx|16'000'000(16M)|0.0364775s|
-|spmcluster|plain|16'000'000(16M)||
-|spmcluster|auto|16'000'000(16M)||
-|spmcluster|avx|16'000'000(16M)||
+|spmcluster|plain|16'000'000(16M)|0.127965s|
+|spmcluster|auto|16'000'000(16M)|0.0304838s|
+|spmcluster|avx|16'000'000(16M)|0.0315648s|
 
 ## which part the compiler couldn't vectorize automatically?
 
@@ -69,3 +69,56 @@ g++ -O3 -march=native -ftree-vectorize -ffast-math -fopt-info-vec-missed softmax
 ```
 
 The results are pretty overwhelming. With proper flag all the loops in softmax_auto() were vectorized.
+
+## Let us compare our results now
+
+```bash
+$ ./softmax_avx 16000000
+# elapsed time (softime_avx): 0.0391605s
+$ ./softmax_auto 16000000
+# elapsed time (softime_auto): 0.031002s
+```
+
+### Why the auto version beats my manual `avx`?
+
+**`Aligned vs Unaligned`** memory addresses:
+
+>When we created our input vector the memory aligned was by default unaligned. It's 16byte off because by default std::vector gives 16bytes alignment.
+
+**What is this alignment**?
+
+Aligned means the starting and ending memory address of our allocator is exactly 32bytes distant. Because avx2 is 256bits=32bytes(4byte each float, total 8float). If the starting address is 0x00 then the next address will be 0x20, 0x40 and so on. 
+
+```cpp
+std::vector<float> input = generate_random_input(K);
+ std::vector<float> output(K);
+```
+
+If you want to check the alignment:
+
+```cpp
+#include <cstdint>
+#include <cstdio>
+
+void check_alignment(const float* ptr) {
+    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+    if (addr % 32 == 0) {
+        printf("Pointer %p is 32-byte aligned\n", ptr);
+    } else {
+        printf("Pointer %p is NOT 32-byte aligned (mod 32 = %zu)\n",
+               ptr, addr % 32);
+    }
+}
+```
+
+Which for sure will reply as unaligned. If you want an aligned input array:
+
+```cpp
+float* data = static_cast<float*>(::operator new[](N * sizeof(float), std::align_val_t(32)));
+```
+
+In our case it was hard because we don't know if the size will be multiple of x32(FP32).
+
+**`Why unaligned allocator is slow?`**
+
+Cache line reads 256bits(32bytes) at once or 512bits(64bytes) at once. But if the next line is not 32/64 bytes distant then we do another memory read which is expensive and a size K which is much larger it's catastrophic.

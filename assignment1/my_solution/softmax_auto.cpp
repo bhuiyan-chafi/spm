@@ -10,27 +10,33 @@ void softmax_auto(const float *__restrict__ input, float *__restrict__ output, s
 {
 	// Find the maximum to stabilize the computation of the exponential
 	float max_val = -std::numeric_limits<float>::infinity();
-// finding the max value within the vector, this loop is completely independent.
+	// finding the max value within the vector, this loop is completely independent.
+	TIMERSTART(max_finder_loop);
 #pragma omp simd reduction(max : max_val)
 	for (size_t i = 0; i < K; ++i)
 	{
 		max_val = std::max(max_val, input[i]);
 	}
+	TIMERSTOP(max_finder_loop);
 	// computes all exponentials with the shift of max_val and the total sum
 	float sum = 0.0f;
+	TIMERSTART(reduction_loop);
 #pragma omp simd reduction(+ : sum)
 	for (size_t i = 0; i < K; ++i)
 	{
 		output[i] = expf(input[i] - max_val);
 		sum += output[i];
 	}
+	TIMERSTOP(reduction_loop)
 	// normalize by dividing for the total sum
+	TIMERSTART(normalizer_loop)
 #pragma omp simd
 
 	for (size_t i = 0; i < K; ++i)
 	{
 		output[i] /= sum;
 	}
+	TIMERSTOP(normalizer_loop);
 }
 
 std::vector<float> generate_random_input(size_t K, float min = -1.0f, float max = 1.0f)

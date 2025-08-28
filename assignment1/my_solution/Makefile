@@ -3,8 +3,8 @@ CXX := g++
 
 # Flags
 CXXFLAGS_PLAIN := -std=c++17 -O3
-CXXFLAGS_AUTO  := -std=c++17 -O3 -march=native -ftree-vectorize -ffast-math
-CXXFLAGS_AVX   := -std=c++17 -O3 -march=native
+CXXFLAGS_AUTO  := -std=c++17 -O3 -march=native -ffast-math
+CXXFLAGS_AVX   := -std=c++17 -O3 -march=native -ffast-math
 
 # Targets
 TARGETS := softmax_auto softmax_plain softmax_avx
