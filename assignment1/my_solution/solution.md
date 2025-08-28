@@ -119,6 +119,12 @@ float* data = static_cast<float*>(::operator new[](N * sizeof(float), std::align
 
 In our case it was hard because we don't know if the size will be multiple of x32(FP32).
 
-**`Why unaligned allocator is slow?`**
+**Why unaligned allocator is slow?**
 
 Cache line reads 256bits(32bytes) at once or 512bits(64bytes) at once. But if the next line is not 32/64 bytes distant then we do another memory read which is expensive and a size K which is much larger it's catastrophic.
+
+**`The loop unrolling`**
+
+Is another reason why `auto` beats our manual `avx` version. This loop unrolling is not like parallel loop unrolling and then assign multiple threads. Right now `vmax` and `sum` is loop bounded because it depdends on the previous value. Our CPU cores can perform $\mu$ ops to remove some latencies.
+
+For example the `normalizer` loop we will understand that how loop unrolling helps. For example in `max` and `sum` we read -> accum/max(another read) - store - store in max. But in `normalizer` we did load - multiply - store FMA(Fused Multiplied Addition)  which is deduced read and write less dependability.
