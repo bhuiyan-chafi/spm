@@ -75,6 +75,7 @@ void benchmark_output(const std::vector<float> &output)
  */
 void softmax_avx(const float *__restrict__ input, float *__restrict__ output, size_t K)
 {
+	TIMERSTART(max_finder_loop);
 	// first we will create the chunks and calculate how many items are remaining(of course < 8)
 	const size_t highest_chunk_value = K & ~size_t(7); // largest multiple of 8
 	const size_t tail = K - highest_chunk_value;
@@ -138,7 +139,7 @@ void softmax_avx(const float *__restrict__ input, float *__restrict__ output, si
 		final_max_value = std::max(final_max_value, input[index]);
 	}
 	// printf("Final max value from the input: %f \n", final_max_value);
-
+	TIMERSTOP(max_finder_loop);
 	/**
 	 * The second phase is to perform the exp on the input and finding the total max
 	 * the scalar operation was: output[i] = std::exp(input[index] - final_max_value);
@@ -146,6 +147,7 @@ void softmax_avx(const float *__restrict__ input, float *__restrict__ output, si
 	 */
 	// take an avx2 lane to broadcast the `final_max_value` because we have to perform
 	// input[index]-final_max_value
+	TIMERSTART(reduction_loop);
 	const __m256 final_max_avx = _mm256_set1_ps(final_max_value); // now we have the same value broadcasted to 8 lanes of the `avx` vector `final_max_avx`
 	// taking one accumulator avx2 to calculate the total sum
 	__m256 accumulator_avx = _mm256_set1_ps(0.0f); // because the final sum is a float scalar
@@ -187,7 +189,7 @@ void softmax_avx(const float *__restrict__ input, float *__restrict__ output, si
 	}
 	// print out the final sum
 	// std::cout << "Final Sum: " << sum << std::endl;
-
+	TIMERSTOP(reduction_loop);
 	/**
 	 * Now we will proceed with the normalization
 	 * output[i] /= sum in scalar
@@ -196,6 +198,7 @@ void softmax_avx(const float *__restrict__ input, float *__restrict__ output, si
 	 * 5/10 = 5*1/10 = 5*0.1 = 0.5
 	 */
 	// let's inverse the sum
+	TIMERSTART(normalizer);
 	float sum_inverse = 1.0f / sum;
 	// printf("Value of the Sum: %f and Sum Inverse: %.9f\n", sum, sum_inverse);
 	// broadcast the value into an avx2 new vector. Since, I don't have to clear them manually! I can create another avx2 for nomenclature(naming convention)
@@ -217,6 +220,7 @@ void softmax_avx(const float *__restrict__ input, float *__restrict__ output, si
 	{
 		output[index] *= sum_inverse;
 	}
+	TIMERSTOP(normalizer);
 }
 
 std::vector<float> generate_random_input(size_t K, float min = -1.0f, float max = 1.0f)
