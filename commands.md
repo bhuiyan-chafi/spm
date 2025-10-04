@@ -26,6 +26,13 @@ If it gives a output of 64 that means 64byte cache-line.
 
 In my machine I have avx and avx2 but no avx512f which means I have max vector registers which are 256 bits wide per thread(if your processor supports hyper-threading, which in most cases now is a yes!).
 
+## Sync files local<->remote
+
+```bash
+rsync -avz Downloads/spmcode7 chafi@131.114.52.245:/home/chafi/spm
+```
+
+
 ## Compile the code and give the executable a name
 
     g++ LoopTest.cpp -o LoopTest_ijk
