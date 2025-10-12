@@ -51,6 +51,28 @@ Two main functions for communication:
 MPI_Send(void* data, int count, MPI_Datatype type, int destination, int tag, MPI_Comm comm)
 
 MPI_Recv(void* data, int count, MPI_Datatype type, int source, int tag, MPI_Comm comm, MPI_Status* status)
+
+int MPI_Scatter(
+    const void* sendbuf,   // data to send (valid only at root)
+    int sendcount,         // number of elements sent to *each* process
+    MPI_Datatype sendtype, // type of each element (e.g., MPI_INT)
+    void* recvbuf,         // buffer where each process receives its data
+    int recvcount,         // number of elements each process receives
+    MPI_Datatype recvtype, // usually same as sendtype
+    int root,              // rank of the sending process
+    MPI_Comm comm          // communicator (e.g., MPI_COMM_WORLD)
+);
+
+int MPI_Gather(
+    const void* sendbuf,   // local data to send
+    int sendcount,         // elements sent by each process
+    MPI_Datatype sendtype, // type of those elements
+    void* recvbuf,         // buffer at root to collect everything
+    int recvcount,         // elements expected from each process
+    MPI_Datatype recvtype, // type of received elements
+    int root,              // rank of collecting process
+    MPI_Comm comm          // communicator
+);
 ```
 
 A short summary on communication types:
