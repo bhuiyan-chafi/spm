@@ -5,4 +5,3 @@ The first discussion is on: key difference between three parallel model that are
 ![parallel-paradigms-discussion](./images/difference.jpg)
 
 Before fastflow some automatic parallelization examples are shown in [openmp-folder](../openmp/parallel-paradigms/).
-
