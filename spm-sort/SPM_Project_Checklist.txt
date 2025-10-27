@@ -31,17 +31,17 @@ Acceptance: reproducible, displays stats.
 Load in memory, sort by key using std::sort, write out.
 Acceptance: verify passes.
 
-5) Out-of-core single-node baseline
+4) Out-of-core single-node baseline
 -----------------------------------
 Read ≤M bytes (≈60% RAM), sort, spill runs, k-way merge.
 Acceptance: verify OK for >RAM file; cleans temp.
 
-6) OpenMP parallel single-node
+5) OpenMP parallel single-node
 ------------------------------
 Parallel sort per run + parallel multiway merge.
 Acceptance: identical output; speedup >1.5× on 8 threads.
 
-7) FastFlow parallel single-node
+6) FastFlow parallel single-node
 --------------------------------
 Pipeline:
   Reader → Farm(sorters) → Spiller → Merge

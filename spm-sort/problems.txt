@@ -1,0 +1,3 @@
+1. In parallel OOC_OMP we set a cap 1u << 18 so that we don't use parallelization for small input size -> do some tests and put it in final report. 
+2. Data generated with OPEN_MP has problems so, programs were not able to execute them. Avoid parallel data generation.
+3. Core dumped in OOC_IMP: because we ran one extra loop beyond THREAD_LIMIT, we had 4 threads but we were executing 5 loops. 

@@ -1,0 +1,76 @@
+We are continuing the SPM project (Distributed Out-of-Core MergeSort).  
+The work so far covers Phases 3 → 5 of the official checklist.
+
+────────────────────────────────────────────────────────────
+📘 Project structure & design
+────────────────────────────────────────────────────────────
+• Core record format: [u64 key][u32 len][len bytes payload]  
+  Defined in record.hpp → do NOT modify it.  
+  read_record() / write_record() are used everywhere.
+
+• Shared data structures moved to include/data_structure.hpp  
+  ─ Item { key, payload }
+  ─ TempReader { reads one sorted run file }
+  ─ HeapNode { key, run_idx, comparator for min-heap }
+
+• Sequential baseline (Phase 3)
+  ─ Loads the entire file (< MEMORY_CAP) in RAM, sorts via std::sort, writes sorted_records.bin.
+
+• Out-of-core single-node (Phase 4)
+  ─ Reads until ~60 % of RAM (MEMORY_CAP = 2 GiB test / ≤ 32 GiB cluster).  
+  ─ Sorts each chunk, spills run_i.bin to tmp/.  
+  ─ Performs a k-way merge using a min-heap of HeapNodes.  
+  ─ Ensures the “tail” chunk is always flushed (removed the else branch).  
+  ─ Cleans temporary runs after merge.
+
+• Verify tool (verify.cpp)
+  ─ Streams records.bin & sorted_records.bin.  
+  ─ Checks keys are non-decreasing.  
+  ─ Confirms equal record count, payload bytes, XOR hash, and SUM hash.  
+  ─ Pure standard C++20, no __int128, header-only spdlog.
+
+────────────────────────────────────────────────────────────
+⚙️ Phase 5 – OpenMP single-node
+────────────────────────────────────────────────────────────
+Goal: “Parallel sort per run + parallel multiway merge; identical output; > 1.5× speedup on 8 threads.”
+
+• New file src/ooc_omp.cpp  
+  Reuses all sequential logic but adds OpenMP at two hotspots:
+  1️⃣ **Parallel sort per run**  
+      - Split each in-RAM run into T blocks (T = threads).  
+      - #pragma omp parallel for → std::sort each block by key.  
+      - Sequential k-way merge of T subranges → identical order.
+  2️⃣ **Parallel grouped merge**  
+      - Partition temp runs into G groups (~threads).  
+      - Each thread merges its group sequentially (reusing merge engine).  
+      - One final single-thread merge of intermediates.  
+      - Cleans up inter_*.bin files.
+
+• Build flags  
+  - Compile ooc_omp with `-fopenmp -std=c++20 -O3 -Wall -Wextra -pedantic`.  
+  - Example Makefile builds: seq_sort, ooc_omp, verify.
+
+• Runtime
+  export OMP_NUM_THREADS=8  
+  ./bin/ooc_omp  
+  then ./bin/verify → should report OK (same data, sorted).
+
+────────────────────────────────────────────────────────────
+🔖 Key implementation details remembered
+────────────────────────────────────────────────────────────
+• MEMORY_CAP guard enforced in both versions.  
+• Tail chunk always sorted & spilled.  
+• Removed else after spill to avoid record loss.  
+• run_index uses size_t (no overflow).  
+• K-way merge uses std::priority_queue<HeapNode,…,greater<>>.  
+• Temporary files auto-deleted.  
+• Output format identical to sequential version.  
+• Expected acceptance: identical output, > 1.5× speedup on 8 threads.
+
+────────────────────────────────────────────────────────────
+Next steps
+────────────────────────────────────────────────────────────
+From this state we can move on to:
+  • Phase 6 – FastFlow pipeline version (parallel with FF farm/pipeline)
+  • Phase 7 – MPI + OpenMP/FastFlow distributed version
+  • Add performance instrumentation & plots for the report.
