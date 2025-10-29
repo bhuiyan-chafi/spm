@@ -1,0 +1,4 @@
+1. Compile and Run: seq_sort
+
+2. Compile and Run: ooc_omp
+    compile: make ooc_omp / make ooc_omp THREADS=N

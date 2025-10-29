@@ -1,15 +1,8 @@
 #pragma once
+#include "data_structure.hpp"
 #include <iostream>
 #include <cstdint>
-#include "data_structure.hpp"
-
-namespace common
-{
-    // calculate stream size to decide where(in/out bound of memory) to process the data
-    uint64_t estimate_stream_size();
-    // writing chunks inside ../data/temp/
-    void write_temp_chunk(std::string &temp_chunk_out_path, const std::vector<Item> &temp_item_chunk);
-}
+#include <vector>
 
 namespace seq_sort
 {
@@ -31,7 +24,7 @@ namespace omp_sort
     void parallel_grouped_merge(const std::vector<std::string> &run_paths,
                                 const std::string &final_out,
                                 const std::string &tmp_dir);
-    // generate one final output
+    // generates one final output
     void merge_runs_to_file(const std::vector<std::string> &temp_paths,
                             const std::string &out_path);
 }

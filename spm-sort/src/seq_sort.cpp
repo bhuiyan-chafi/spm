@@ -9,6 +9,7 @@
  */
 #include <iostream>
 #include <cstdint>
+#include "common.hpp"
 #include "helper.hpp"
 #include "constants.hpp"
 #include "spdlog/spdlog.h"
@@ -29,8 +30,7 @@ int main()
     {
         if (stream_size <= MEMORY_CAP)
         {
-            if (stream_size < SMALL_DATA_SIZE)
-                spdlog::info("==> PHASE: 2.1 -> Starting in-memory operation.....");
+            spdlog::info("==> PHASE: 2.1 -> Starting in-memory operation.....");
             seq_sort::sort_in_memory();
             spdlog::info("==> Completed: Merge Sort, data written in path: {}", DATA_OUT_STREAM);
             return EXIT_SUCCESS;

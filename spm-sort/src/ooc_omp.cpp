@@ -3,6 +3,7 @@
 #include <fstream>
 #include "constants.hpp"
 #include "helper.hpp"
+#include "common.hpp"
 #include "../../utils/microtimer.h"
 
 int main()

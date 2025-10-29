@@ -1,285 +1,311 @@
-// seq.cpp  -- Sequential baseline with simple out-of-core fallback (C++20)
-// Build: g++ -std=c++20 -O3 -Wall -Wextra -pedantic seq.cpp -o seq
-// Use : ./seq in.bin out.bin PAYLOAD_MAX [mem_limit_bytes] [tmp_dir]
+// Pure FastFlow pipelines (no farms) for both branches.
+// - In-memory  (< MEM_CAP): ReaderAll -> Sorter -> WriterAll
+// - Out-of-core(>= MEM_CAP): ReaderChunks -> Sorter -> Spiller -> Collector(eos->final merge)
 
-#include <bits/stdc++.h>
-#include "record.hpp" // <- your header; we DO NOT modify it
+#include <ff/pipeline.hpp>
+#include <ff/node.hpp>
+#include <filesystem>
+#include <fstream>
+#include <queue>
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <algorithm>
+#include <atomic>
 
-using namespace std;
+#include "spdlog/spdlog.h"
+#include "record.hpp"
+#include "data_structure.hpp" // Item{key,payload}
 
-// ---------------------------- Small helpers ---------------------------------
+#ifndef DEFAULT_MEMORY_CAP_MIB
+#define DEFAULT_MEMORY_CAP_MIB 2048ULL
+#endif
+#ifndef DEFAULT_CHUNK_MIB
+#define DEFAULT_CHUNK_MIB 16ULL
+#endif
 
-static uint64_t to_u64(const string &s)
+using ItemVec = std::vector<Item>;
+struct RunInfo
 {
-    // very simple parser; accepts decimal only
-    return std::stoull(s);
-}
-
-struct Item
-{
-    uint64_t key;
-    std::vector<uint8_t> payload; // payload bytes
+    std::string path;
+    std::size_t items{};
 };
 
-// Estimate memory usage for in-RAM vector (very rough, but enough to keep us safe)
-static inline uint64_t est_bytes(const vector<Item> &v)
+// ---------- small io helpers
+static inline std::uint64_t per_item_bytes(std::uint64_t, const std::vector<std::uint8_t> &p)
 {
-    uint64_t sum = 0;
-    for (const auto &it : v)
-    {
-        // 8 bytes key + 4 bytes len + payload + small overhead (~8)
-        sum += 8 + 4 + it.payload.size() + 8;
-    }
-    // also count vector overhead a bit
-    sum += v.size() * 16;
-    return sum;
+    return sizeof(std::uint64_t) + sizeof(std::uint32_t) + p.size();
 }
 
-// --------------------- Phase A: run generation (OOC) ------------------------
-
-static string make_run_path(const string &tmp_dir, size_t idx)
+// ---------- in-memory pipeline stages
+struct ReaderAll : ff::ff_node_t<ItemVec>
 {
-    ostringstream oss;
-    oss << tmp_dir << "/run_" << idx << ".bin";
-    return oss.str();
-}
-
-// Spill a sorted run to disk
-static void write_run(const string &path, const vector<Item> &run)
-{
-    ofstream out(path, ios::binary);
-    if (!out)
-        throw runtime_error("cannot open run file for write: " + path);
-    for (const auto &it : run)
-    {
-        recordHeader::write_record(out, it.key, it.payload);
-    }
-}
-
-// --------------------- Phase B: k-way merge (OOC) ---------------------------
-
-struct RunReader
-{
-    ifstream in;
-    bool eof = false;
-    uint64_t key = 0;
-    vector<uint8_t> payload;
-
-    explicit RunReader(const string &path) : in(path, ios::binary)
+    std::ifstream in;
+    explicit ReaderAll(const std::string &inpath) : in(inpath, std::ios::binary)
     {
         if (!in)
-            throw runtime_error("cannot open run for read: " + path);
-        advance(); // prefetch first record
+            throw std::runtime_error("Cannot open input " + inpath);
     }
+    ItemVec *svc(ItemVec *) override
+    {
+        auto data = std::make_unique<ItemVec>();
+        std::uint64_t k;
+        std::vector<std::uint8_t> p;
+        while (recordHeader::read_record(in, k, p))
+            data->push_back(Item{k, std::move(p)});
+        spdlog::info("ReaderAll loaded {} records", data->size());
+        ff_send_out(data.release());
+        return EOS;
+    }
+};
 
-    void advance()
+struct SortStage_IV : ff::ff_node_t<ItemVec, ItemVec>
+{
+    ItemVec *svc(ItemVec *v) override
+    {
+        std::sort(v->begin(), v->end(), [](const Item &a, const Item &b)
+                  { return a.key < b.key; });
+        return v;
+    }
+};
+
+struct WriterAll : ff::ff_node_t<ItemVec, void>
+{
+    std::string outpath;
+    explicit WriterAll(std::string out) : outpath(std::move(out)) {}
+    void *svc(ItemVec *v) override
+    {
+        std::ofstream out(outpath, std::ios::binary);
+        if (!out)
+        {
+            delete v;
+            throw std::runtime_error("Cannot open " + outpath);
+        }
+        for (auto &it : *v)
+            recordHeader::write_record(out, it.key, it.payload);
+        spdlog::info("WriterAll wrote {} records -> {}", v->size(), outpath);
+        delete v;
+        return GO_ON;
+    }
+};
+
+// ---------- out-of-core pipeline stages
+using Chunk = ItemVec;
+
+struct ReaderChunks : ff::ff_node_t<Chunk>
+{
+    std::ifstream in;
+    std::uint64_t chunk_bytes;
+    ReaderChunks(const std::string &inpath, std::uint64_t chunkMiB)
+        : in(inpath, std::ios::binary), chunk_bytes(chunkMiB * 1024ULL * 1024ULL)
+    {
+        if (!in)
+            throw std::runtime_error("Cannot open input " + inpath);
+    }
+    Chunk *svc(Chunk *) override
+    {
+        while (true)
+        {
+            auto c = std::make_unique<Chunk>();
+            std::uint64_t acc = 0;
+            while (acc < chunk_bytes)
+            {
+                std::uint64_t k;
+                std::vector<std::uint8_t> p;
+                if (!recordHeader::read_record(in, k, p))
+                    break;
+                acc += per_item_bytes(k, p);
+                c->push_back(Item{k, std::move(p)});
+            }
+            if (c->empty())
+                break;
+            ff_send_out(c.release());
+        }
+        return EOS;
+    }
+};
+
+struct SortStage_OC : ff::ff_node_t<Chunk, Chunk>
+{
+    Chunk *svc(Chunk *c) override
+    {
+        std::sort(c->begin(), c->end(), [](const Item &a, const Item &b)
+                  { return a.key < b.key; });
+        return c;
+    }
+};
+
+struct SpillStage : ff::ff_node_t<Chunk, RunInfo>
+{
+    std::string tmpdir;
+    std::atomic<std::uint64_t> counter{0};
+    explicit SpillStage(std::string td) : tmpdir(std::move(td))
+    {
+        std::filesystem::create_directories(tmpdir);
+    }
+    RunInfo *svc(Chunk *c) override
+    {
+        const auto id = counter.fetch_add(1, std::memory_order_relaxed);
+        const std::string path = tmpdir + "/run_" + std::to_string(id) + ".bin";
+        std::ofstream out(path, std::ios::binary);
+        if (!out)
+        {
+            delete c;
+            throw std::runtime_error("Cannot open " + path);
+        }
+        for (auto &it : *c)
+            recordHeader::write_record(out, it.key, it.payload);
+        auto *ri = new RunInfo{path, c->size()};
+        delete c;
+        return ri;
+    }
+};
+
+// final merge helpers (local reader)
+struct LReader
+{
+    std::ifstream in;
+    bool eof{false};
+    std::uint64_t key{};
+    std::vector<std::uint8_t> payload;
+    explicit LReader(const std::string &p) : in(p, std::ios::binary)
+    {
+        if (!in)
+            throw std::runtime_error("Cannot open " + p);
+        next();
+    }
+    bool next()
     {
         if (!recordHeader::read_record(in, key, payload))
         {
             eof = true;
+            return false;
         }
+        return true;
     }
 };
 
-struct HeapNode
+struct CollectAndFinalMerge : ff::ff_node_t<RunInfo, void>
 {
-    uint64_t key;
-    size_t run_idx; // which run this record came from
-    // no payload here; we keep payload in the RunReader to avoid copying
-    bool operator>(const HeapNode &other) const { return key > other.key; }
+    std::string outpath;
+    std::vector<std::string> runs;
+    explicit CollectAndFinalMerge(std::string out) : outpath(std::move(out)) {}
+    void *svc(RunInfo *r) override
+    {
+        runs.push_back(std::move(r->path));
+        delete r;
+        return GO_ON;
+    }
+    void eosnotify(ssize_t) override
+    {
+        if (runs.empty())
+        {
+            spdlog::warn("No runs to merge.");
+            return;
+        }
+        struct Node
+        {
+            std::uint64_t k;
+            size_t i;
+        };
+        struct Cmp
+        {
+            bool operator()(const Node &a, const Node &b) const { return a.k > b.k; }
+        };
+        std::vector<std::unique_ptr<LReader>> R;
+        R.reserve(runs.size());
+        for (auto &p : runs)
+            R.emplace_back(std::make_unique<LReader>(p));
+        std::priority_queue<Node, std::vector<Node>, Cmp> pq;
+        for (size_t i = 0; i < R.size(); ++i)
+            if (!R[i]->eof)
+                pq.push(Node{R[i]->key, i});
+        std::ofstream out(outpath, std::ios::binary);
+        if (!out)
+            throw std::runtime_error("Cannot open output " + outpath);
+        size_t written = 0;
+        while (!pq.empty())
+        {
+            auto n = pq.top();
+            pq.pop();
+            auto &rd = *R[n.i];
+            recordHeader::write_record(out, rd.key, rd.payload);
+            ++written;
+            if (rd.next())
+                pq.push(Node{rd.key, n.i});
+        }
+        spdlog::info("Final merge wrote {} records -> {}", written, outpath);
+        for (auto &p : runs)
+        {
+            std::error_code ec;
+            std::filesystem::remove(p, ec);
+        }
+        runs.clear();
+    }
 };
 
-// ------------------------- Sorting strategies -------------------------------
-
-// Try to read entire file into memory. If it exceeds mem_limit, return false.
-static bool sort_in_memory(const string &in_path,
-                           const string &out_path,
-                           uint32_t PAYLOAD_MAX,
-                           uint64_t mem_limit_bytes)
+// ---------- driver with MEMORY_CAP gate, but pipelines only
+static void usage(const char *prog)
 {
-    ifstream in(in_path, ios::binary);
-    if (!in)
-        throw runtime_error("cannot open input file");
-
-    vector<Item> items;
-    items.reserve(1024); // small start
-
-    // Phase: load
-    while (true)
-    {
-        uint64_t key;
-        vector<uint8_t> payload;
-        if (!recordHeader::read_record(in, key, payload))
-            break; // EOF
-        items.push_back(Item{key, std::move(payload)});
-
-        // Memory guard (very rough)
-        if ((items.size() & 0xFFF) == 0)
-        { // every ~4096 recs, check
-            if (est_bytes(items) > mem_limit_bytes)
-            {
-                return false; // switch to OOC
-            }
-        }
-    }
-
-    // Phase: sort
-    std::sort(items.begin(), items.end(),
-              [](const Item &a, const Item &b)
-              { return a.key < b.key; });
-
-    // Phase: write
-    ofstream out(out_path, ios::binary);
-    if (!out)
-        throw runtime_error("cannot open output file");
-    for (const auto &it : items)
-    {
-        recordHeader::write_record(out, it.key, it.payload);
-    }
-    return true;
+    fmt::print(stderr,
+               "Usage: {} <input.bin> <output.bin> <tmpdir> [MEM_CAP_MiB=2048] [chunkMiB=16]\n", prog);
 }
-
-// External (single-thread) merge sort: run generation + k-way merge
-static void sort_out_of_core(const string &in_path,
-                             const string &out_path,
-                             uint32_t PAYLOAD_MAX,
-                             uint64_t mem_limit_bytes,
-                             const string &tmp_dir)
-{
-    // ------------------ Phase A: make sorted runs -------------------
-    ifstream in(in_path, ios::binary);
-    if (!in)
-        throw runtime_error("cannot open input file");
-
-    vector<string> run_paths;
-    vector<Item> run;
-    run.reserve(1024);
-
-    uint64_t current_bytes = 0;
-    size_t run_idx = 0;
-
-    while (true)
-    {
-        uint64_t key;
-        vector<uint8_t> payload;
-        if (!recordHeader::read_record(in, key, payload))
-        {
-            // EOF -> spill the last partial run if any
-            if (!run.empty())
-            {
-                sort(run.begin(), run.end(),
-                     [](const Item &a, const Item &b)
-                     { return a.key < b.key; });
-                string path = make_run_path(tmp_dir, run_idx++);
-                write_run(path, run);
-                run_paths.push_back(path);
-                run.clear();
-            }
-            break;
-        }
-
-        // add to run
-        current_bytes += 8 + 4 + payload.size() + 8; // rough estimate
-        run.push_back(Item{key, std::move(payload)});
-
-        // if we exceeded mem_limit, sort+spill
-        if (current_bytes >= mem_limit_bytes)
-        {
-            sort(run.begin(), run.end(),
-                 [](const Item &a, const Item &b)
-                 { return a.key < b.key; });
-            string path = make_run_path(tmp_dir, run_idx++);
-            write_run(path, run);
-            run_paths.push_back(path);
-
-            run.clear();
-            current_bytes = 0;
-        }
-    }
-
-    // Special case: if we produced 0 runs (empty input), just truncate output
-    if (run_paths.empty())
-    {
-        ofstream out(out_path, ios::binary); // empty file
-        return;
-    }
-
-    // If we produced exactly one run and never overflowed memory,
-    // we could rename/move it, but for simplicity we still do a 1-way "merge".
-    // ------------------ Phase B: k-way merge ------------------------
-    vector<unique_ptr<RunReader>> readers;
-    readers.reserve(run_paths.size());
-    for (const auto &p : run_paths)
-        readers.push_back(make_unique<RunReader>(p));
-
-    priority_queue<HeapNode, vector<HeapNode>, std::greater<HeapNode>> heap;
-    for (size_t i = 0; i < readers.size(); ++i)
-    {
-        if (!readers[i]->eof)
-            heap.push(HeapNode{readers[i]->key, i});
-    }
-
-    ofstream out(out_path, ios::binary);
-    if (!out)
-        throw runtime_error("cannot open output file");
-
-    while (!heap.empty())
-    {
-        auto top = heap.top();
-        heap.pop();
-        auto &rr = *readers[top.run_idx];
-
-        // write current record
-        recordHeader::write_record(out, rr.key, rr.payload);
-
-        // advance that run
-        rr.advance();
-        if (!rr.eof)
-        {
-            heap.push(HeapNode{rr.key, top.run_idx});
-        }
-    }
-
-    // cleanup temp runs
-    for (const auto &p : run_paths)
-    {
-        std::remove(p.c_str());
-    }
-}
-
-// --------------------------------- main -------------------------------------
 
 int main(int argc, char **argv)
 {
-    if (argc < 4 || argc > 6)
-    {
-        cerr << "use: " << argv[0]
-             << " in.bin out.bin PAYLOAD_MAX [mem_limit_bytes] [tmp_dir]\n";
-        return 1;
-    }
-
-    const string in_path = argv[1];
-    const string out_path = argv[2];
-    const uint32_t PAYLOAD_MAX = static_cast<uint32_t>(stoul(argv[3]));
-
-    // defaults: conservative but simple
-    uint64_t mem_limit = (argc >= 5) ? to_u64(argv[4]) : (uint64_t)8ULL * 1024ULL * 1024ULL * 1024ULL; // 8 GiB
-    string tmp_dir = (argc == 6) ? string(argv[5]) : string("/tmp");
-
-    // Try in-memory first. If it would exceed mem_limit, use OOC path.
     try
     {
-        bool ok = sort_in_memory(in_path, out_path, PAYLOAD_MAX, mem_limit);
-        if (!ok)
+        if (argc < 4)
         {
-            // fallback to external merge (still sequential)
-            sort_out_of_core(in_path, out_path, PAYLOAD_MAX, mem_limit, tmp_dir);
+            usage(argv[0]);
+            return 1;
         }
+        const std::string inpath = argv[1];
+        const std::string outpath = argv[2];
+        const std::string tmpdir = argv[3];
+        const std::uint64_t MEM_CAP_MiB = (argc >= 5) ? std::stoull(argv[4]) : DEFAULT_MEMORY_CAP_MIB;
+        const std::uint64_t chunkMiB = (argc >= 6) ? std::stoull(argv[5]) : DEFAULT_CHUNK_MIB;
+
+        const auto fsz = std::filesystem::file_size(inpath);
+        spdlog::info("Pure Pipeline | file={} bytes (~{:.2f} MiB) | MEM_CAP={} MiB | chunk={} MiB",
+                     fsz, fsz / 1024.0 / 1024.0, MEM_CAP_MiB, chunkMiB);
+
+        const std::uint64_t capB = MEM_CAP_MiB * 1024ULL * 1024ULL;
+
+        if (fsz < capB)
+        {
+            // ------ in-memory pure pipeline: ReaderAll -> Sorter -> WriterAll
+            ReaderAll r(inpath);
+            SortStage_IV s;
+            WriterAll w(outpath);
+            ff::ff_Pipe pipe(r, s, w);
+            if (pipe.run_and_wait_end() < 0)
+            {
+                spdlog::error("Pipeline failed (in-memory)");
+                return 2;
+            }
+        }
+        else
+        {
+            // ------ out-of-core pure pipeline: ReaderChunks -> Sorter -> Spiller -> Collector(merge on EOS)
+            ReaderChunks rc(inpath, chunkMiB);
+            SortStage_OC s;
+            SpillStage sp(tmpdir);
+            CollectAndFinalMerge c(outpath);
+            ff::ff_Pipe pipe(rc, s, sp, c);
+            if (pipe.run_and_wait_end() < 0)
+            {
+                spdlog::error("Pipeline failed (OOC)");
+                return 3;
+            }
+        }
+
+        spdlog::info("Done.");
+        return 0;
     }
-    catch (const exception &e)
+    catch (const std::exception &e)
     {
-        cerr << "error: " << e.what() << "\n";
+        spdlog::error("Fatal: {}", e.what());
         return 1;
     }
-    return 0;
 }
