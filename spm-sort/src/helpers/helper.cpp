@@ -88,7 +88,7 @@ namespace seq_sort
                     common::write_temp_chunk(temp_chunk_out_path, temp_items);
                     temp_record_paths.push_back(temp_chunk_out_path);
                     spdlog::info("Total INPUT quantity: {}", temp_items.size());
-                    temp_items.clear();
+                    // free the memory and reset
                     std::vector<Item>().swap(temp_items);
                     spdlog::info("==> PHASE: 7.{} -> Completed standard library sort for chunk_{}", current_stream_index, current_stream_index);
                 }
@@ -104,7 +104,7 @@ namespace seq_sort
                 std::string temp_chunk_out_path = DATA_TMP_DIR + "run_" + std::to_string(current_stream_index++) + ".bin";
                 common::write_temp_chunk(temp_chunk_out_path, temp_items);
                 temp_record_paths.push_back(temp_chunk_out_path);
-                temp_items.clear();
+                // free the memory and reset
                 std::vector<Item>().swap(temp_items);
                 current_stream_size_inBytes = 0ULL;
                 spdlog::info("==> PHASE: 7.{} -> Completed standard library sort for chunk_{}", current_stream_index - 1, current_stream_index - 1);
@@ -273,7 +273,8 @@ namespace omp_sort
                     common::write_temp_chunk(outp, temp_items);
                     temp_record_paths.push_back(outp);
                     spdlog::info("Total INPUT quantity: {}", temp_items.size());
-                    temp_items.clear();
+                    // free the memory and reset
+                    std::vector<Item>().swap(temp_items);
                     current_stream_size_inBytes = 0ULL;
                 }
                 break;
@@ -288,7 +289,8 @@ namespace omp_sort
                 std::string temp_chunk_out_path = DATA_TMP_DIR + "run_" + std::to_string(current_stream_index++) + ".bin";
                 common::write_temp_chunk(temp_chunk_out_path, temp_items);
                 temp_record_paths.push_back(temp_chunk_out_path);
-                temp_items.clear();
+                // free the memory and reset
+                std::vector<Item>().swap(temp_items);
                 current_stream_size_inBytes = 0ULL;
                 spdlog::info("Completed writing sorted chunk_{}", current_stream_index - 1);
             }

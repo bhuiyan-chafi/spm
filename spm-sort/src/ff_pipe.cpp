@@ -11,6 +11,7 @@
 #include "helper_ff.hpp"
 #include "common.hpp"
 #include "constants.hpp"
+#include "spdlog/spdlog.h"
 #include "../../utils/microtimer.h"
 
 /**
@@ -35,11 +36,11 @@ int main()
         if (STREAM_SIZE < MEMORY_CAP)
         {
             spdlog::info("==> PHASE: 2.1 -> Starting in-memory operation.....");
-            spdlog::info("==> PHASE: 3 -> Starting up DATA_LOADER stage.....");
+            spdlog::info("==> PHASE: 3 -> STAGE_1: Starting up DATA_LOADER stage.....");
             ff_pipe_in_memory::DataLoader loader(DATA_IN_STREAM);
-            spdlog::info("==> PHASE: 4 -> Starting up DATA_SORTER stage.....");
+            spdlog::info("==> PHASE: 4 -> STAGE_2: Starting up DATA_SORTER stage.....");
             ff_pipe_in_memory::DataSorter sorter;
-            spdlog::info("==> PHASE: 5 -> Starting up DATA_WRITER stage.....");
+            spdlog::info("==> PHASE: 5 -> STAGE_3: Starting up DATA_WRITER stage.....");
             ff_pipe_in_memory::DataWriter writer(DATA_OUT_STREAM);
             spdlog::info("==> PHASE: 6 -> Starting the PIPELINE parallelization.....");
             ff::ff_Pipe pipe(loader, sorter, writer);
@@ -53,7 +54,22 @@ int main()
         else
         {
             spdlog::info("==> PHASE: 2.1 -> Starting out-of-memory-bound operation.....");
-            return EXIT_SUCCESS;
+            spdlog::info("==> PHASE: 3 -> STAGE_1: Starting up CHUNK_LOADER stage.....");
+            ff_pipe_out_of_core::ChunkLoader loader(DATA_IN_STREAM);
+            spdlog::info("==> PHASE: 4 -> STAGE_2: Starting up DATA_SORTER stage.....");
+            ff_pipe_out_of_core::ChunkSorter sorter;
+            spdlog::info("==> PHASE: 5 -> STAGE_3: Starting up CHUNK_WRITER stage.....");
+            ff_pipe_out_of_core::ChunkWriter writer;
+            spdlog::info("==> PHASE: 6 -> STAGE_4: Starting up CHUNK_MERGER stage.....");
+            ff_pipe_out_of_core::ChunkMerger merger(DATA_OUT_STREAM);
+            spdlog::info("==> PHASE: 7 -> Starting the PIPELINE parallelization.....");
+            ff::ff_Pipe pipe(loader, sorter, writer, merger);
+            if (pipe.run_and_wait_end() < 0)
+            {
+                spdlog::error("==> X -> Pipeline failed .......");
+                return EXIT_FAILURE;
+            }
+            spdlog::info("==> Completed: Merge Sort, data written in path: {}", DATA_OUT_STREAM);
         }
     }
     catch (const std::exception &error)
