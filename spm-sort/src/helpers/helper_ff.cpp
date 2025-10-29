@@ -24,11 +24,7 @@ namespace ff_pipe_in_memory
             throw std::runtime_error("");
         }
     }
-    int DataLoader::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
+
     // return_type *Node::function(parameter)
     ITEMS *DataLoader::svc(ITEMS *)
     {
@@ -41,11 +37,6 @@ namespace ff_pipe_in_memory
         return EOS;
     }
 
-    int DataSorter::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
     ITEMS *DataSorter::svc(ITEMS *items)
     {
         std::sort(items->begin(), items->end(), [](const Item &a, const Item &b)
@@ -63,11 +54,6 @@ namespace ff_pipe_in_memory
         }
     }
 
-    int DataWriter::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
     void *DataWriter::svc(ITEMS *items)
     {
         for (auto &it : *items)
@@ -85,7 +71,7 @@ namespace ff_pipe_out_of_core
     // 'in' is stream is defined within definition and is private for this
     // NODE::FUNCTION from the namespace
     /** ----- Create CHUNKS and RELEASE to get SORTED ----- */
-    ChunkLoader::ChunkLoader(const std::string &inpath) : in(inpath, std::ios::binary)
+    Segmenter::Segmenter(const std::string &inpath) : in(inpath, std::ios::binary)
     {
         if (!in)
         {
@@ -93,14 +79,10 @@ namespace ff_pipe_out_of_core
             throw std::runtime_error("");
         }
     }
-    int ChunkLoader::svc_init()
+
+    TEMP_ITEMS *Segmenter::svc(TEMP_ITEMS *)
     {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
-    TEMP_ITEMS *ChunkLoader::svc(TEMP_ITEMS *)
-    {
-        spdlog::info("Processing Thread for CHUNK_LOADER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        // spdlog::info("Processing Thread for CHUNK_LOADER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
         spdlog::info("Creating CHUNKS based on MEMORY_CAP {} GiB", MEMORY_CAP / (1024ULL * 1024ULL * 1024ULL));
         auto temp_items = std::make_unique<TEMP_ITEMS>();
         while (true)
@@ -111,7 +93,7 @@ namespace ff_pipe_out_of_core
             {
                 if (!temp_items->empty())
                 {
-                    spdlog::info("No more items in DATA_STREAM, Releasing the last CHUNK_{}", current_stream_index);
+                    // spdlog::info("No more items in DATA_STREAM, Releasing the last CHUNK_{}", current_stream_index);
                     ff_send_out(temp_items.release());
                     // freeing memory
                     temp_items = std::make_unique<TEMP_ITEMS>();
@@ -135,29 +117,21 @@ namespace ff_pipe_out_of_core
     }
 
     /** ----- Sort the released CHUNKS ----- */
-    int ChunkSorter::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
+
     TEMP_ITEMS *ChunkSorter::svc(TEMP_ITEMS *temp_items)
     {
-        spdlog::info("Processing Thread for CHUNK_SORTER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        spdlog::info("Sorting CHUNK of size: {} ", temp_items->size());
+        // spdlog::info("Processing Thread for CHUNK_SORTER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        // spdlog::info("Sorting CHUNK of size: {} ", temp_items->size());
         std::sort(temp_items->begin(), temp_items->end(), [](const Item &a, const Item &b)
                   { return a.key < b.key; });
         return temp_items;
     }
 
     /** ----- Write the released CHUNKS ----- */
-    int ChunkWriter::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
+
     STRING_VECTOR *ChunkWriter::svc(TEMP_ITEMS *temp_items)
     {
-        spdlog::info("Processing Thread for CHUNK_WRITER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        // spdlog::info("Processing Thread for CHUNK_WRITER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
         spdlog::info("Writing CHUNK_{} of size: {} ", current_stream_index, temp_items->size());
         temp_chunk_out_path = DATA_TMP_DIR + "run_" + std::to_string(current_stream_index++) + ".bin";
         common::write_temp_chunk(temp_chunk_out_path, *temp_items);
@@ -167,8 +141,14 @@ namespace ff_pipe_out_of_core
         return GO_ON;
     }
 
-    void ChunkWriter::svc_end()
+    void ChunkWriter::eosnotify(ssize_t)
     {
+        if (temp_chunk_out_paths.empty())
+        {
+            spdlog::error("No runs produced; nothing to merge.");
+            return;
+        }
+        // spdlog::info("Emitting {} chunk paths", temp_chunk_out_paths.size());
         auto *paths = new STRING_VECTOR;
         paths->swap(temp_chunk_out_paths);
         ff_send_out(paths);
@@ -187,17 +167,21 @@ namespace ff_pipe_out_of_core
      * ----- currently performing two tasks : loading in HEAP and WRITE -----
      * We will see in future if we can separate them
      */
-    int ChunkMerger::svc_init()
-    {
-        spdlog::info("[init] ReaderAll tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        return 0;
-    }
+
     void *ChunkMerger::svc(STRING_VECTOR *temp_record_paths)
     {
-        spdlog::info("Processing Thread for CHUNK_MERGER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        spdlog::info("Merging {} temporary runs:", temp_record_paths->size());
+        /**
+         * for (size_t i = 0; i < temp_record_paths->size(); ++i)
+         * {
+         *  spdlog::info("  [{}] {}", i, (*temp_record_paths)[i]);
+         * }
+         */
+
         readers.reserve(temp_record_paths->size());
         for (const auto &record_path : *temp_record_paths)
             readers.push_back(std::make_unique<TempReader>(record_path));
+
         std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<HeapNode>> heap;
         for (uint64_t i = 0; i < readers.size(); ++i)
         {
@@ -217,7 +201,7 @@ namespace ff_pipe_out_of_core
                 heap.push(HeapNode{current_reader.key, top.temp_run_index});
             }
         }
-        spdlog::info("==> PHASE: 10 -> Cleaning up data chunks.....");
+        spdlog::info("Cleaning up data chunks.....");
         for (const auto &temp_record_path : *temp_record_paths)
         {
             std::remove(temp_record_path.c_str());

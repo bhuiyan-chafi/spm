@@ -156,3 +156,118 @@ g++-12 -std=c++20 -O3 -Wall -Wextra -pedantic -fopenmp \
 ⸻
 
 → From this point onward we will begin Phase 6 (FastFlow parallel pipeline) while preserving the verified OOC + OMP logic and record format.
+
+===================================== PROMPT PHASE: 6B ==========================================
+
+Absolutely ✅ — here’s your continuation prompt capturing everything we’ve done so far, focused on your pure FastFlow pipeline version (Phase 6A baseline) and the new runtime thread instrumentation.
+
+You can copy-paste this directly into a new chat, and I’ll immediately know where to continue.
+
+⸻
+
+✅ CONTINUATION PROMPT — SPM Project 1 (Phase 6A Pure FastFlow Pipeline)
+
+We’re continuing from the FastFlow pure pipeline implementation of the SPM Project 1 (Distributed Out-of-Core MergeSort).
+
+⸻
+
+📘 Current focus
+
+We finished Phase 6A, the pure pipeline version, whose goal is to prove that a simple pipeline (one thread per stage) under-utilizes CPU cores compared to the next hybrid “pipeline + farm” design.
+
+⸻
+
+⚙️ Pipeline structure
+
+In-memory (< MEMORY_CAP)
+
+ReaderAll  →  SortStage_IV  →  WriterAll
+
+	•	3 FastFlow nodes
+	•	Each stage runs in its own thread
+	•	Processes the entire dataset in RAM
+
+Out-of-core (≥ MEMORY_CAP)
+
+ReaderChunks  →  SortStage_OC  →  SpillStage  →  CollectAndFinalMerge
+
+	•	4 FastFlow nodes
+	•	Handles large inputs chunk-by-chunk
+	•	Spills sorted runs to disk, then merges
+	•	Single output vector emitted at end (svc_end)
+
+⸻
+
+🧩 Files in use
+
+include/common.hpp
+include/helper_ff.hpp
+src/common.cpp
+src/helper_ff.cpp
+src/ff_pipe.cpp      ← current pure-pipeline main
+
+common.cpp provides helpers such as load_all_data_in_memory() and write_temp_chunk().
+
+⸻
+
+🧠 Instrumentation (Option 1)
+
+We added runtime proof that every pipeline stage runs on a separate OS thread:
+
+Utility (top of ff_pipe.cpp)
+
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <sched.h>
+static inline unsigned long get_tid() {
+    return static_cast<unsigned long>(::syscall(SYS_gettid));
+}
+
+Each stage now logs on startup
+
+int svc_init() override {
+    spdlog::info("[init] <StageName>  tid={}  cpu={}", get_tid(), sched_getcpu());
+    return 0;
+}
+
+Example output (proves parallel threads):
+
+[init] ReaderChunks     tid=49281 cpu=3
+[init] SortStage_OC     tid=49282 cpu=5
+[init] SpillStage       tid=49283 cpu=7
+[init] CollectAndMerge  tid=49284 cpu=2
+
+✅ Distinct TIDs = distinct threads (one per stage).
+The cpu= column shows which core the OS scheduler placed them on.
+
+⸻
+
+🧠 Current conclusions
+	•	The pipeline runs with one thread per stage (3 threads in RAM mode, 4 threads OOC).
+	•	Each stage operates on its own data → no race conditions.
+	•	Logging and runtime evidence confirm concurrency.
+	•	CPU utilization verified via both htop and FastFlow thread IDs.
+
+⸻
+
+🧩 Next step (Phase 6B plan)
+
+Implement and benchmark the Pipeline + Farm hybrid:
+
+Reader  →  Farm(Sorters)  →  Spiller  →  Collector/Merger
+
+to demonstrate true multi-core scalability beyond the one-thread-per-stage limitation.
+
+⸻
+
+🧠 Quick compile reminder
+
+g++-12 -std=c++20 -O3 -Wall -pthread \
+  -I./include -I./include/spdlog/include -I./include/fastflow \
+  ./src/ff_pipe.cpp ./src/helpers/common.cpp ./src/helpers/helper_ff.cpp \
+  -o ./bin/ff_pipe
+
+
+⸻
+
+→ From here, we continue with Phase 6B (hybrid pipeline + farm) using the current pure-pipeline code as the verified baseline.

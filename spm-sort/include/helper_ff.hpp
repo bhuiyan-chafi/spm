@@ -4,7 +4,6 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
-
 // ---------- Thread instrumentation helpers ----------
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -24,7 +23,7 @@ namespace ff_pipe_in_memory
     using ITEMS = ff_common::ITEMS;
     struct DataLoader : ff::ff_node_t<ITEMS>
     {
-        int svc_init() override;
+
         explicit DataLoader(const std::string &inpath);
         ITEMS *svc(ITEMS *) override;
 
@@ -33,12 +32,10 @@ namespace ff_pipe_in_memory
     };
     struct DataSorter : ff::ff_node_t<ITEMS, ITEMS>
     {
-        int svc_init() override;
         ITEMS *svc(ITEMS *items) override;
     };
     struct DataWriter : ff::ff_node_t<ITEMS, void>
     {
-        int svc_init() override;
         explicit DataWriter(const std::string &outpath);
         void *svc(ITEMS *items) override;
 
@@ -52,10 +49,10 @@ namespace ff_pipe_out_of_core
     using TEMP_ITEMS = ff_common::ITEMS;
     using STRING_VECTOR = std::vector<std::string>;
     /** ----- Create CHUNKS and RELEASE to get SORTED ----- */
-    struct ChunkLoader : ff::ff_node_t<TEMP_ITEMS>
+    struct Segmenter : ff::ff_node_t<TEMP_ITEMS>
     {
-        int svc_init() override;
-        explicit ChunkLoader(const std::string &inpath);
+
+        explicit Segmenter(const std::string &inpath);
         TEMP_ITEMS *svc(TEMP_ITEMS *) override;
 
     private:
@@ -68,17 +65,15 @@ namespace ff_pipe_out_of_core
     /** ----- Sort the released CHUNKS ----- */
     struct ChunkSorter : ff::ff_node_t<TEMP_ITEMS, TEMP_ITEMS>
     {
-        int svc_init() override;
         TEMP_ITEMS *svc(TEMP_ITEMS *) override;
     };
 
     /** ----- Write the released CHUNKS ----- */
     struct ChunkWriter : ff::ff_node_t<TEMP_ITEMS, STRING_VECTOR>
     {
-        int svc_init() override;
         STRING_VECTOR *svc(TEMP_ITEMS *) override;
         // at the end we accumulate all paths and push into one
-        void svc_end() override;
+        void eosnotify(ssize_t) override;
 
     private:
         uint64_t current_stream_index = 0;
@@ -89,7 +84,6 @@ namespace ff_pipe_out_of_core
     /** ----- MERGE the released CHUNKS ----- */
     struct ChunkMerger : ff::ff_node_t<STRING_VECTOR, void>
     {
-        int svc_init() override;
         explicit ChunkMerger(const std::string &outpath);
         void *svc(STRING_VECTOR *temp_record_paths) override;
 

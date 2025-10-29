@@ -6,7 +6,7 @@ INCLUDES += -I./include/ -I./include/spdlog/include
 LINKS ?=
 
 # Default target
-all: seq_sort verify ooc_omp generator ff_pipe
+all: seq_sort verify ooc_omp generator ff_pipe read_data
 
 # --- data_generator ---
 generator:
@@ -16,11 +16,6 @@ generator:
 seq_sort: LINKS += ./src/seq_sort.cpp ./src/helpers/common.cpp ./src/helpers/helper.cpp
 seq_sort:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./src/seq_sort
-
-# --- verify ---
-verify: FLAGS += -fopenmp -pthread
-verify:
-	$(COMPILER) $(FLAGS) $(INCLUDES) ./src/verify.cpp -o ./src/verify
 
 # --- ooc_omp ---
 ooc_omp: FLAGS += -fopenmp -pthread -ffast-math
@@ -38,6 +33,14 @@ ff_pipe: INCLUDES += -I./include/fastflow/
 ff_pipe: LINKS += ./src/ff_pipe.cpp ./src/helpers/common.cpp ./src/helpers/helper_ff.cpp
 ff_pipe:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(FF_INCLUDE) $(LINKS) -o ./src/ff_pipe
+
+# --- verify ---
+verify: FLAGS += -fopenmp -pthread
+verify:
+	$(COMPILER) $(FLAGS) $(INCLUDES) ./src/verify.cpp -o ./src/verify
+
+read_data:
+	$(COMPILER) $(FLAGS) $(INCLUDES) ./tests/read_data.cpp -o ./tests/read_data
 
 # --- clean ---
 .PHONY: clean

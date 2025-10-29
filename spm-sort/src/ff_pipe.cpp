@@ -27,7 +27,8 @@
 const int WORKERS = 0;
 int main()
 {
-    spdlog::info("==> Welcome to the Pipeline experiment of our MERGE_SORT problem with {} stages");
+    spdlog::info("==> Welcome to the Pipeline experiment of our MERGE_SORT problem with 4 stages");
+    spdlog::info("==> Segmenter -> ChunkSorter -> ChunkWriter -> ChunkMerger -> sorted_records.bin");
     spdlog::info("==> PHASE: 1 -> Calculate the stream size.....");
     const uint64_t STREAM_SIZE = common::estimate_stream_size();
     spdlog::info("==> PHASE: 2 -> Check memory cap and decide sort in/out memory bound.....");
@@ -54,16 +55,16 @@ int main()
         else
         {
             spdlog::info("==> PHASE: 2.1 -> Starting out-of-memory-bound operation.....");
-            spdlog::info("==> PHASE: 3 -> STAGE_1: Starting up CHUNK_LOADER stage.....");
-            ff_pipe_out_of_core::ChunkLoader loader(DATA_IN_STREAM);
-            spdlog::info("==> PHASE: 4 -> STAGE_2: Starting up DATA_SORTER stage.....");
+            // spdlog::info("==> PHASE: 3 -> STAGE_1: Creating CHUNK_LOADER stage/node.....");
+            ff_pipe_out_of_core::Segmenter segmenter(DATA_IN_STREAM);
+            // spdlog::info("==> PHASE: 4 -> STAGE_2: Creating DATA_SORTER stage/node.....");
             ff_pipe_out_of_core::ChunkSorter sorter;
-            spdlog::info("==> PHASE: 5 -> STAGE_3: Starting up CHUNK_WRITER stage.....");
+            // spdlog::info("==> PHASE: 5 -> STAGE_3: Creating CHUNK_WRITER stage/node.....");
             ff_pipe_out_of_core::ChunkWriter writer;
-            spdlog::info("==> PHASE: 6 -> STAGE_4: Starting up CHUNK_MERGER stage.....");
+            // spdlog::info("==> PHASE: 6 -> STAGE_4: Creating CHUNK_MERGER stage/node.....");
             ff_pipe_out_of_core::ChunkMerger merger(DATA_OUT_STREAM);
-            spdlog::info("==> PHASE: 7 -> Starting the PIPELINE parallelization.....");
-            ff::ff_Pipe pipe(loader, sorter, writer, merger);
+            spdlog::info("==> PHASE: 3 -> Starting the PIPELINE parallelization.....");
+            ff::ff_Pipe pipe(segmenter, sorter, writer, merger);
             if (pipe.run_and_wait_end() < 0)
             {
                 spdlog::error("==> X -> Pipeline failed .......");

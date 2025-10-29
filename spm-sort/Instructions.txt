@@ -2,3 +2,6 @@
 
 2. Compile and Run: ooc_omp
     compile: make ooc_omp / make ooc_omp THREADS=N
+3. Compile and Run: read_data
+    compile: make read_data
+    run: ./read_data (0~N) input/output
