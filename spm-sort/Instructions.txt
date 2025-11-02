@@ -5,3 +5,5 @@
 3. Compile and Run: read_data
     compile: make read_data
     run: ./read_data (0~N) input/output
+4. Compile and Run: ff_farm
+    compile:  make ff_farm THREADS=8

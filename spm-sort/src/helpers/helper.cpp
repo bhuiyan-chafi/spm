@@ -94,7 +94,7 @@ namespace seq_sort
                 }
                 break;
             }
-            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size() + sizeof(uint16_t);
+            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
             if ((current_stream_size_inBytes + current_item_size) > MEMORY_CAP)
             {
                 spdlog::info("==> PHASE: 7.{} -> Starting standard library sort for chunk_{}", current_stream_index, current_stream_index);
@@ -279,7 +279,7 @@ namespace omp_sort
                 }
                 break;
             }
-            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size() + sizeof(uint32_t);
+            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
 
             if (current_stream_size_inBytes + current_item_size > MEMORY_CAP)
             {

@@ -10,10 +10,10 @@
 #include <queue>
 #include <filesystem>
 #include <algorithm>
+#include <atomic>
 
 namespace ff_pipe_in_memory
 {
-    using ITEMS = ff_common::ITEMS;
     // 'in' is stream is defined within definition and is private for this
     // NODE::FUNCTION from the namespace
     DataLoader::DataLoader(const std::string &inpath) : in(inpath, std::ios::binary)
@@ -101,7 +101,7 @@ namespace ff_pipe_out_of_core
                 }
                 break;
             }
-            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size() + sizeof(uint16_t);
+            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
             if ((current_stream_size_inBytes + current_item_size) > MEMORY_CAP)
             {
                 spdlog::info("Releasing CHUNK_{}", current_stream_index++);
@@ -208,5 +208,257 @@ namespace ff_pipe_out_of_core
         }
         delete temp_record_paths;
         return GO_ON;
+    }
+}
+
+namespace ff_farm_in_memory
+{
+    /**
+     * ----- EMITTER(chunk creator) Functionalities -----
+     * @param parts = WORKERS
+     * */
+    EMITTER::EMITTER(const std::string &inpath, int parts)
+        : in(inpath, std::ios::binary), parts(parts)
+    {
+        if (!in)
+        {
+            spdlog::error("==> X => Error in in/out DATA_STREAM.....");
+            throw std::runtime_error("");
+        }
+    }
+    ITEMS *EMITTER::svc(ITEMS *)
+    {
+        // since FF works through pointers
+        spdlog::info("[init] EMITTER_Worker tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        auto all = std::make_unique<ITEMS>();
+        common::load_all_data_in_memory(*all, in);
+        spdlog::info("Emitter: loaded {} records", all->size());
+        /**
+         * we will create chunks based on number of workers
+         * we did the same thing in OPENMP
+         * size/THREADS -> vector<ITEM> chunks
+         *
+         * Here it's similar, we are taking the whole size of input and number of WORKERs
+         * then we decide the ranges to be sorted by each workers
+         */
+        auto ranges = ff_common::create_chunk_ranges(all->size(), parts);
+        // how many items we have
+        for (size_t i = 0; i < ranges.size(); ++i)
+        {
+            auto [START, END] = ranges[i];
+            auto *chunk = new ITEMS;
+            chunk->reserve(END - START);
+            // for each item's START and END
+            for (size_t j = START; j < END; ++j)
+                chunk->push_back(std::move((*all)[j]));
+            spdlog::info("Emitter: emits chunk_{} size={}", i, chunk->size());
+            // keeps sending until the chunks are finished
+            ff_send_out(chunk);
+        }
+        // end of service
+        return this->EOS;
+    }
+
+    /**
+     * ----- WORKER(sorter) Functionalities -----
+     * */
+    ITEMS *WORKER::svc(ITEMS *items)
+    {
+        spdlog::info("[init] WORKER_Sorter tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        std::sort(items->begin(), items->end(),
+                  [](const Item &a, const Item &b)
+                  { return a.key < b.key; });
+        return items;
+    }
+
+    /**
+     * ----- COLLECTOR(sink) Functionalities -----
+     */
+    COLLECTOR::COLLECTOR(const std::string &outpath) : out(outpath, std::ios::binary)
+    {
+        spdlog::info("[init] COLLECTOR tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        if (!out)
+        {
+            spdlog::error("==> X => Error in in/out DATA_STREAM.....");
+            throw std::runtime_error("");
+        }
+    }
+    void *COLLECTOR::svc(ITEMS *v)
+    {
+        batches.emplace_back(v); // take ownership
+        return this->GO_ON;
+    }
+    void COLLECTOR::svc_end()
+    {
+        spdlog::info("COLLECTOR: merging {} sorted batches", batches.size());
+        auto comparison_key = [](const Node &a, const Node &b)
+        { return a.key > b.key; };
+        std::priority_queue<Node, std::vector<Node>, decltype(comparison_key)> comparison_queue(comparison_key);
+        for (uint64_t index = 0; index < batches.size(); ++index)
+            if (!batches[index]->empty())
+                comparison_queue.push(Node{(*batches[index])[0].key, index, 0});
+        size_t written = 0;
+        /**
+         * Writing records from each worker's heap
+         */
+        while (!comparison_queue.empty())
+        {
+            auto node = comparison_queue.top();
+            comparison_queue.pop();
+            const Item &it = (*batches[node.sub_range])[node.offset];
+            recordHeader::write_record(out, it.key, it.payload);
+            ++written;
+            std::uint64_t next_i = node.offset + 1;
+            if (next_i < batches[node.sub_range]->size())
+            {
+                comparison_queue.push(Node{
+                    (*batches[node.sub_range])[next_i].key,
+                    node.sub_range,
+                    next_i,
+                });
+            }
+        }
+        spdlog::info("COLLECTOR: wrote {} records -> {}", written, DATA_OUT_STREAM);
+        /**
+         * Clearing items
+         */
+        for (auto *p : batches)
+            delete p;
+        batches.clear();
+        spdlog::info("COLLECTOR: cleared records from MEMORY");
+    }
+}
+
+namespace ff_farm_out_of_core
+{
+    /** ----- Create CHUNKS and RELEASE to get SORTED ----- */
+    SegmentAndEmit::SegmentAndEmit(const std::string &inpath) : in(inpath, std::ios::binary)
+    {
+        if (!in)
+        {
+            spdlog::error("==> X => Error in in/out DATA_STREAM.....");
+            throw std::runtime_error("");
+        }
+    }
+    TEMP_ITEMS *SegmentAndEmit::svc(TEMP_ITEMS *)
+    {
+        spdlog::info("Processing Thread for CHUNK_LOADER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        spdlog::info("Creating CHUNKS based on MEMORY_CAP {} GiB", MEMORY_CAP / (1024ULL * 1024ULL * 1024ULL));
+        auto temp_items = std::make_unique<TEMP_ITEMS>();
+        while (true)
+        {
+            uint64_t key;
+            std::vector<uint8_t> payload;
+            if (!recordHeader::read_record(in, key, payload))
+            {
+                if (!temp_items->empty())
+                {
+                    // spdlog::info("No more items in DATA_STREAM, Releasing the last CHUNK_{}", current_stream_index);
+                    ff_send_out(temp_items.release());
+                    // freeing memory
+                    temp_items = std::make_unique<TEMP_ITEMS>();
+                    current_stream_size_inBytes = 0ULL;
+                }
+                break;
+            }
+            current_item_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
+            if ((current_stream_size_inBytes + current_item_size) > MEMORY_CAP)
+            {
+                spdlog::info("Releasing CHUNK_{}", current_stream_index++);
+                ff_send_out(temp_items.release());
+                // freeing memory
+                temp_items = std::make_unique<TEMP_ITEMS>();
+                current_stream_size_inBytes = 0ULL;
+            }
+            temp_items->push_back(Item{key, std::move(payload)});
+            current_stream_size_inBytes += current_item_size;
+        }
+        return EOS;
+    }
+    /** ----- Sort the released CHUNKS ----- */
+
+    TEMP_SEG_PATH *SortAndWriteSegment::svc(TEMP_ITEMS *items)
+    {
+        spdlog::info("Processing Thread for CHUNK_LOADER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
+        std::sort(items->begin(), items->end(),
+                  [](const Item &a, const Item &b)
+                  { return a.key < b.key; });
+
+        /**
+         * Each worker sorts and writes it's own segment
+         * then they will return one path, which is unique
+         * race-condition will happen
+         * so we need atomic operation while writing the file name
+         */
+        static std::atomic<uint64_t> segment_index{0};
+        const auto index = segment_index.fetch_add(1, std::memory_order_relaxed);
+        const std::string current_segment_path = DATA_TMP_DIR + "run_" + std::to_string(index) + ".bin";
+        spdlog::info("Current PATH: {}", current_segment_path);
+        // reuse your helper to write a temp chunk
+        auto segment_path = current_segment_path; // write_temp_chunk takes non-const ref
+        common::write_temp_chunk(segment_path, *items);
+
+        delete items;
+        return new TEMP_SEG_PATH(current_segment_path);
+    }
+
+    /** ----- Collect and Merge ----- */
+    CollectAndMerge::CollectAndMerge(const std::string &outpath) : out(outpath, std::ios::binary)
+    {
+        if (!out)
+        {
+            spdlog::error("==> X => Error in in/out DATA_STREAM.....");
+            throw std::runtime_error("");
+        }
+    }
+    // receives each path from the workers and fills in the path vector
+    void *CollectAndMerge::svc(TEMP_SEG_PATH *path)
+    {
+        segment_paths.emplace_back(std::move(*path));
+        delete path;
+        return this->GO_ON;
+    }
+    // time to perform the final merge
+    void CollectAndMerge::svc_end()
+    {
+        spdlog::info("Merging {} temporary runs:", segment_paths.size());
+        /**
+         * for (size_t i = 0; i < temp_record_paths->size(); ++i)
+         * {
+         *  spdlog::info("  [{}] {}", i, (*temp_record_paths)[i]);
+         * }
+         */
+
+        readers.reserve(segment_paths.size());
+        for (const auto &record_path : segment_paths)
+            readers.push_back(std::make_unique<TempReader>(record_path));
+
+        std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<HeapNode>> heap;
+        for (uint64_t i = 0; i < readers.size(); ++i)
+        {
+            if (!readers[i]->eof)
+                heap.push(HeapNode{readers[i]->key, i});
+        }
+        spdlog::info("Writing RECORDS from data chunks.....");
+        while (!heap.empty())
+        {
+            auto top = heap.top();
+            heap.pop();
+            auto &current_reader = *readers[top.temp_run_index];
+            recordHeader::write_record(out, current_reader.key, current_reader.payload);
+            current_reader.advance();
+            if (!current_reader.eof)
+            {
+                heap.push(HeapNode{current_reader.key, top.temp_run_index});
+            }
+        }
+        spdlog::info("Cleaning up data chunks.....");
+        for (const auto &temp_record_path : segment_paths)
+        {
+            std::remove(temp_record_path.c_str());
+        }
+        segment_paths.clear();
+        readers.clear();
+        readers.shrink_to_fit();
     }
 }

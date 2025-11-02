@@ -271,3 +271,125 @@ g++-12 -std=c++20 -O3 -Wall -pthread \
 ⸻
 
 → From here, we continue with Phase 6B (hybrid pipeline + farm) using the current pure-pipeline code as the verified baseline.
+
+
+Perfect — you’re right 👍
+The verified pure pipeline (Phase 6A) and pure farm (Phase 6B) are done.
+The next step (Phase 6C) is to build the hybrid FastFlow version — Pipeline → Farm → Pipeline — to overcome the one-thread-per-stage bottleneck of the pure pipeline, while keeping the farm’s concurrency.
+
+Here’s your full, clean continuation prompt including everything up to this point — ready to paste into a new chat so we can start Phase 6C directly.
+
+⸻
+
+✅ CONTINUATION PROMPT — SPM Project 1 (Phase 6C: FastFlow Hybrid Pipeline + Farm)
+
+We are continuing SPM Project 1 — Distributed Out-of-Core MergeSort
+and have completed Phases 3 → 6B (Sequential → OOC → OpenMP → FastFlow Pipeline & Farm).
+Now we move to Phase 6C — Hybrid FastFlow (Pipeline + Farm).
+
+⸻
+
+📘 Current codebase
+
+Record format (locked)
+
+[u64 key][u32 len][len bytes payload]
+
+Defined in record.hpp.
+All versions use the same read/write helpers.
+
+Common headers
+	•	data_structure.hpp → Item, TempReader, HeapNode
+	•	constants.hpp → paths, MEMORY_CAP
+	•	common.hpp → stream utilities
+	•	helper_ff.hpp / helper_ff.cpp → FastFlow node definitions
+
+⸻
+
+✅ Completed Phases (Recap)
+
+⚙️ Phase 3 — Sequential baseline
+	•	Loads all records (< MEMORY_CAP)
+	•	Sorts in-memory (std::sort)
+	•	Writes sorted_records.bin
+	•	Verified via verify.cpp (FNV-1a fingerprint)
+
+💾 Phase 4 — Out-of-Core single-node
+	•	Streams ≈ 60 % of RAM per chunk
+	•	Sorts each chunk → temp run_i.bin
+	•	Final k-way merge → sorted_records.bin
+	•	Temporary files auto-removed
+
+🧵 Phase 5 — OpenMP single-node
+	•	Parallel sort per chunk + grouped merges
+	•	Configurable threads (DEFAULT_MAX_THREADS / omp_get_max_threads())
+	•	Output verified identical
+
+⚡ Phase 6A — Pure FastFlow Pipeline
+	•	In-memory: Reader → Sorter → Writer
+	•	Out-of-core: ReaderChunks → SortStage → SpillStage → CollectAndMerge
+	•	Each stage = one thread → proved concurrency with TIDs/CPU affinity logs
+
+🚀 Phase 6B — Pure FastFlow Farm
+	•	In-memory farm:
+	•	Emitter loads & partitions data → Workers sort → Collector merges
+	•	Out-of-core farm:
+	•	Emitter segments ≤ MEMORY_CAP
+	•	Each worker sorts + writes its own run
+	•	Collector gathers run paths + final k-way merge
+	•	Fully parallel; atomic run IDs prevent races
+	•	On-demand scheduling for uneven chunks
+	•	Output identical to OMP and Sequential versions
+
+⸻
+
+🧩 Verified files
+
+include/record.hpp
+include/data_structure.hpp
+include/constants.hpp
+include/common.hpp
+include/helper_ff.hpp
+src/helpers/helper_ff.cpp
+src/ff_pipe.cpp        ← Pure pipeline
+src/ff_farm.cpp        ← Pure farm (in-mem + OOC)
+src/ooc_omp.cpp
+src/seq_sort.cpp
+src/generator.cpp
+SPM_Project_Checklist.txt
+project1.pdf
+
+
+⸻
+
+✅ Current status
+	•	Sequential, OOC, OpenMP, FastFlow Pipeline and Farm versions all verified.
+	•	Race-free I/O and consistent record format.
+	•	Temporary files auto-cleaned.
+	•	Configurable threads via macro or env var.
+	•	Next step: combine pipeline and farm for true multi-core throughput with stage parallelism.
+
+⸻
+
+🔜 Next phase — Phase 6C: Hybrid FastFlow (Pipeline + Farm)
+
+Goal: achieve parallelism both across stages and within stages.
+
+Target topology (Out-of-Core):
+
+ReaderStage  →  Farm(SortWorkers)  →  WriterStage  →  FinalMerger
+
+	•	Reader loads and emits segments (Producer)
+	•	Farm sorts chunks concurrently (Computation)
+	•	Writer/Collector merges or spills (Consumer)
+	•	Final merge consolidates runs → sorted_records.bin
+
+Requirements
+	•	Maintain same dataflow semantics as pipeline / farm.
+	•	Preserve record format and correctness.
+	•	Support on-demand scheduling inside the farm.
+	•	Measure parallel speedup vs pure pipeline and pure farm.
+
+⸻
+
+📌 From this point we will implement Phase 6C — the Hybrid FastFlow version combining Pipeline + Farm to maximize core utilization while retaining out-of-core scalability.

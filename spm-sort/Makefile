@@ -19,25 +19,35 @@ seq_sort:
 
 # --- ooc_omp ---
 ooc_omp: FLAGS += -fopenmp -pthread -ffast-math
-ifdef THREADS
-ooc_omp: FLAGS += -DDEFAULT_MAX_THREADS=$(THREADS)
-endif
 ooc_omp: LINKS += ./src/ooc_omp.cpp ./src/helpers/common.cpp ./src/helpers/helper.cpp
 ooc_omp:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./src/ooc_omp
 
 # --- ff_pipe ---
-
 ff_pipe: FLAGS += -pthread
 ff_pipe: INCLUDES += -I./include/fastflow/
 ff_pipe: LINKS += ./src/ff_pipe.cpp ./src/helpers/common.cpp ./src/helpers/helper_ff.cpp
 ff_pipe:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(FF_INCLUDE) $(LINKS) -o ./src/ff_pipe
 
+# --- ff_farm ---
+
+ff_farm: FLAGS += -pthread
+ff_farm: INCLUDES += -I./include/fastflow/
+ff_farm: LINKS += ./src/ff_farm.cpp ./src/helpers/common.cpp ./src/helpers/helper_ff.cpp
+ff_farm:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(FF_INCLUDE) $(LINKS) -o ./src/ff_farm
+
 # --- verify ---
 verify: FLAGS += -fopenmp -pthread
 verify:
 	$(COMPILER) $(FLAGS) $(INCLUDES) ./src/verify.cpp -o ./src/verify
+
+verifier_ff: FLAGS += -pthread
+verifier_ff: INCLUDES += -I./include/fastflow/
+verifier_ff: LINKS += ./src/verifier_ff.cpp ./src/helpers/common.cpp
+verifier_ff:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(FF_INCLUDE) $(LINKS) -o ./src/verifier_ff
 
 read_data:
 	$(COMPILER) $(FLAGS) $(INCLUDES) ./tests/read_data.cpp -o ./tests/read_data

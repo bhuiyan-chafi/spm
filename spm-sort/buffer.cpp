@@ -1,311 +1,329 @@
-// Pure FastFlow pipelines (no farms) for both branches.
-// - In-memory  (< MEM_CAP): ReaderAll -> Sorter -> WriterAll
-// - Out-of-core(>= MEM_CAP): ReaderChunks -> Sorter -> Spiller -> Collector(eos->final merge)
-
-#include <ff/pipeline.hpp>
-#include <ff/node.hpp>
-#include <filesystem>
-#include <fstream>
-#include <queue>
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <algorithm>
-#include <atomic>
-
-#include "spdlog/spdlog.h"
 #include "record.hpp"
-#include "data_structure.hpp" // Item{key,payload}
+#include "constants.hpp"
+#include "data_structure.hpp"
+#include "helper_ff.hpp"
+#include "spdlog/spdlog.h"
+#include "ff/ff.hpp"
 
-#ifndef DEFAULT_MEMORY_CAP_MIB
-#define DEFAULT_MEMORY_CAP_MIB 2048ULL
-#endif
-#ifndef DEFAULT_CHUNK_MIB
-#define DEFAULT_CHUNK_MIB 16ULL
-#endif
+#include <fstream>
+#include <vector>
+#include <string>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <cstdlib>
 
-using ItemVec = std::vector<Item>;
-struct RunInfo
+using u64 = std::uint64_t;
+namespace fs = std::filesystem;
+
+struct VerificationTask
 {
-    std::string path;
-    std::size_t items{};
+    size_t chunk_id{};
+    std::pair<u64, u64> range{};
+    std::vector<Item> records;
+    bool has_prev_last{false};
+    u64 prev_last_key{0};
 };
 
-// ---------- small io helpers
-static inline std::uint64_t per_item_bytes(std::uint64_t, const std::vector<std::uint8_t> &p)
+class VerificationEmitter : public ff::ff_node_t<VerificationTask>
 {
-    return sizeof(std::uint64_t) + sizeof(std::uint32_t) + p.size();
-}
-
-// ---------- in-memory pipeline stages
-struct ReaderAll : ff::ff_node_t<ItemVec>
-{
-    std::ifstream in;
-    explicit ReaderAll(const std::string &inpath) : in(inpath, std::ios::binary)
+public:
+    VerificationEmitter(const std::string &out_path,
+                        std::vector<std::pair<u64, u64>> ranges_in,
+                        int workers)
+        : out(out_path, std::ios::binary),
+          ranges(std::move(ranges_in)),
+          worker_count(workers)
     {
-        if (!in)
-            throw std::runtime_error("Cannot open input " + inpath);
-    }
-    ItemVec *svc(ItemVec *) override
-    {
-        auto data = std::make_unique<ItemVec>();
-        std::uint64_t k;
-        std::vector<std::uint8_t> p;
-        while (recordHeader::read_record(in, k, p))
-            data->push_back(Item{k, std::move(p)});
-        spdlog::info("ReaderAll loaded {} records", data->size());
-        ff_send_out(data.release());
-        return EOS;
-    }
-};
-
-struct SortStage_IV : ff::ff_node_t<ItemVec, ItemVec>
-{
-    ItemVec *svc(ItemVec *v) override
-    {
-        std::sort(v->begin(), v->end(), [](const Item &a, const Item &b)
-                  { return a.key < b.key; });
-        return v;
-    }
-};
-
-struct WriterAll : ff::ff_node_t<ItemVec, void>
-{
-    std::string outpath;
-    explicit WriterAll(std::string out) : outpath(std::move(out)) {}
-    void *svc(ItemVec *v) override
-    {
-        std::ofstream out(outpath, std::ios::binary);
         if (!out)
         {
-            delete v;
-            throw std::runtime_error("Cannot open " + outpath);
+            spdlog::error("Emitter: cannot open {}", out_path);
+            throw std::runtime_error("Emitter failed to open output stream");
         }
-        for (auto &it : *v)
-            recordHeader::write_record(out, it.key, it.payload);
-        spdlog::info("WriterAll wrote {} records -> {}", v->size(), outpath);
-        delete v;
-        return GO_ON;
-    }
-};
-
-// ---------- out-of-core pipeline stages
-using Chunk = ItemVec;
-
-struct ReaderChunks : ff::ff_node_t<Chunk>
-{
-    std::ifstream in;
-    std::uint64_t chunk_bytes;
-    ReaderChunks(const std::string &inpath, std::uint64_t chunkMiB)
-        : in(inpath, std::ios::binary), chunk_bytes(chunkMiB * 1024ULL * 1024ULL)
-    {
-        if (!in)
-            throw std::runtime_error("Cannot open input " + inpath);
-    }
-    Chunk *svc(Chunk *) override
-    {
-        while (true)
+        if (worker_count <= 0)
         {
-            auto c = std::make_unique<Chunk>();
-            std::uint64_t acc = 0;
-            while (acc < chunk_bytes)
+            spdlog::error("Emitter: invalid worker count {}", worker_count);
+            throw std::runtime_error("Emitter requires at least one worker");
+        }
+    }
+
+    VerificationTask *svc(VerificationTask *) override
+    {
+        spdlog::info("Emitter: preparing {} chunk(s) for verification", ranges.size());
+        for (size_t idx = 0; idx < ranges.size(); ++idx)
+        {
+            auto [start, end] = ranges[idx];
+            if (end <= start)
             {
-                std::uint64_t k;
-                std::vector<std::uint8_t> p;
-                if (!recordHeader::read_record(in, k, p))
-                    break;
-                acc += per_item_bytes(k, p);
-                c->push_back(Item{k, std::move(p)});
+                spdlog::info("Emitter: chunk {} has no records, skipping", idx);
+                continue;
             }
-            if (c->empty())
+
+            auto task = std::make_unique<VerificationTask>();
+            task->chunk_id = idx;
+            task->range = {start, end};
+            task->has_prev_last = has_last_key;
+            task->prev_last_key = last_key;
+
+            const u64 expected = end - start;
+            task->records.reserve(static_cast<size_t>(expected));
+
+            for (u64 j = 0; j < expected; ++j)
+            {
+                u64 key;
+                std::vector<uint8_t> payload;
+                if (!recordHeader::read_record(out, key, payload))
+                {
+                    spdlog::error("Emitter: unexpected end of {} while loading chunk {}", DATA_OUT_STREAM, idx);
+                    throw std::runtime_error("Emitter failed to read expected record");
+                }
+                task->records.push_back(Item{key, std::move(payload)});
+            }
+
+            if (!task->records.empty())
+            {
+                last_key = task->records.back().key;
+                has_last_key = true;
+            }
+
+            spdlog::info("Emitter: emitted chunk {} covering [{} , {}) with {} record(s)",
+                         idx, start, end, task->records.size());
+
+            const unsigned int target_worker = static_cast<unsigned int>(next_worker);
+            next_worker = (next_worker + 1) % static_cast<unsigned int>(worker_count);
+
+            if (!this->ff_send_out(task.release(), static_cast<int>(target_worker)))
+            {
+                spdlog::error("Emitter: failed to dispatch chunk {} (target worker {})", idx, target_worker);
+                throw std::runtime_error("Emitter failed to dispatch chunk");
+            }
+            spdlog::info("Emitter: chunk {} assigned to worker {}", idx, target_worker);
+        }
+        spdlog::info("Emitter: all chunks dispatched");
+        return this->EOS;
+    }
+
+private:
+    std::ifstream out;
+    std::vector<std::pair<u64, u64>> ranges;
+    bool has_last_key{false};
+    u64 last_key{0};
+    int worker_count{0};
+    unsigned int next_worker{0};
+};
+
+class VerificationWorker : public ff::ff_node_t<VerificationTask, void>
+{
+public:
+    explicit VerificationWorker(int id) : worker_id(id) {}
+
+    void *svc(VerificationTask *task) override
+    {
+        if (!task)
+            return this->GO_ON;
+
+        std::unique_ptr<VerificationTask> task_ptr(task);
+        const auto [start, end] = task_ptr->range;
+        spdlog::info("Worker {}: checking chunk {} covering [{} , {}) with {} record(s)",
+                     worker_id, task_ptr->chunk_id, start, end, task_ptr->records.size());
+        spdlog::info("Worker {}: starting record verification for chunk {}",
+                     worker_id, task_ptr->chunk_id);
+
+        auto release_task_memory = [&task_ptr]()
+        {
+            for (auto &item : task_ptr->records)
+                std::vector<uint8_t>().swap(item.payload);
+            task_ptr->records.clear();
+            task_ptr->records.shrink_to_fit();
+        };
+
+        if (task_ptr->records.empty())
+        {
+            spdlog::info("Worker {}: chunk {} empty, nothing to check", worker_id, task_ptr->chunk_id);
+            release_task_memory();
+            return this->GO_ON;
+        }
+
+        if (task_ptr->has_prev_last)
+        {
+            const u64 first_key = task_ptr->records.front().key;
+            if (first_key < task_ptr->prev_last_key)
+            {
+                spdlog::error("Worker {}: chunk {} fails boundary check (prev_last={} first={})",
+                              worker_id, task_ptr->chunk_id, task_ptr->prev_last_key, first_key);
+                release_task_memory();
+                throw std::runtime_error("Output stream is not globally sorted");
+            }
+        }
+
+        for (size_t i = 1; i < task_ptr->records.size(); ++i)
+        {
+            if (task_ptr->records[i - 1].key > task_ptr->records[i].key)
+            {
+                spdlog::error("Worker {}: chunk {} fails local sortedness at position {} ({} > {})",
+                              worker_id, task_ptr->chunk_id, i - 1,
+                              task_ptr->records[i - 1].key, task_ptr->records[i].key);
+                release_task_memory();
+                throw std::runtime_error("Chunk is not sorted in non-decreasing order");
+            }
+        }
+        spdlog::info("Worker {}: chunk {} passes sortedness check",
+                     worker_id, task_ptr->chunk_id);
+
+        std::ifstream input(DATA_IN_STREAM, std::ios::binary);
+        if (!input)
+        {
+            spdlog::error("Worker {}: cannot open input stream {}", worker_id, DATA_IN_STREAM);
+            release_task_memory();
+            throw std::runtime_error("Failed to open input stream for verification");
+        }
+
+        std::vector<bool> matched(task_ptr->records.size(), false);
+        size_t matched_count = 0;
+        u64 key = 0;
+        std::vector<uint8_t> payload;
+
+        while (recordHeader::read_record(input, key, payload))
+        {
+            for (size_t i = 0; i < task_ptr->records.size(); ++i)
+            {
+                if (matched[i])
+                    continue;
+                const auto &candidate = task_ptr->records[i];
+                if (candidate.key == key && candidate.payload == payload)
+                {
+                    matched[i] = true;
+                    ++matched_count;
+                    std::vector<uint8_t>().swap(task_ptr->records[i].payload);
+                    break;
+                }
+            }
+
+            if (matched_count == task_ptr->records.size())
                 break;
-            ff_send_out(c.release());
         }
-        return EOS;
+
+        if (matched_count != task_ptr->records.size())
+        {
+            spdlog::error("Worker {}: chunk {} mismatches input stream (matched {} of {})",
+                          worker_id, task_ptr->chunk_id, matched_count, task_ptr->records.size());
+            release_task_memory();
+            throw std::runtime_error("Output records do not match input");
+        }
+
+        spdlog::info("Worker {}: chunk {} verified against input", worker_id, task_ptr->chunk_id);
+
+        release_task_memory();
+        return this->GO_ON;
     }
+
+private:
+    int worker_id;
 };
 
-struct SortStage_OC : ff::ff_node_t<Chunk, Chunk>
-{
-    Chunk *svc(Chunk *c) override
-    {
-        std::sort(c->begin(), c->end(), [](const Item &a, const Item &b)
-                  { return a.key < b.key; });
-        return c;
-    }
-};
-
-struct SpillStage : ff::ff_node_t<Chunk, RunInfo>
-{
-    std::string tmpdir;
-    std::atomic<std::uint64_t> counter{0};
-    explicit SpillStage(std::string td) : tmpdir(std::move(td))
-    {
-        std::filesystem::create_directories(tmpdir);
-    }
-    RunInfo *svc(Chunk *c) override
-    {
-        const auto id = counter.fetch_add(1, std::memory_order_relaxed);
-        const std::string path = tmpdir + "/run_" + std::to_string(id) + ".bin";
-        std::ofstream out(path, std::ios::binary);
-        if (!out)
-        {
-            delete c;
-            throw std::runtime_error("Cannot open " + path);
-        }
-        for (auto &it : *c)
-            recordHeader::write_record(out, it.key, it.payload);
-        auto *ri = new RunInfo{path, c->size()};
-        delete c;
-        return ri;
-    }
-};
-
-// final merge helpers (local reader)
-struct LReader
-{
-    std::ifstream in;
-    bool eof{false};
-    std::uint64_t key{};
-    std::vector<std::uint8_t> payload;
-    explicit LReader(const std::string &p) : in(p, std::ios::binary)
-    {
-        if (!in)
-            throw std::runtime_error("Cannot open " + p);
-        next();
-    }
-    bool next()
-    {
-        if (!recordHeader::read_record(in, key, payload))
-        {
-            eof = true;
-            return false;
-        }
-        return true;
-    }
-};
-
-struct CollectAndFinalMerge : ff::ff_node_t<RunInfo, void>
-{
-    std::string outpath;
-    std::vector<std::string> runs;
-    explicit CollectAndFinalMerge(std::string out) : outpath(std::move(out)) {}
-    void *svc(RunInfo *r) override
-    {
-        runs.push_back(std::move(r->path));
-        delete r;
-        return GO_ON;
-    }
-    void eosnotify(ssize_t) override
-    {
-        if (runs.empty())
-        {
-            spdlog::warn("No runs to merge.");
-            return;
-        }
-        struct Node
-        {
-            std::uint64_t k;
-            size_t i;
-        };
-        struct Cmp
-        {
-            bool operator()(const Node &a, const Node &b) const { return a.k > b.k; }
-        };
-        std::vector<std::unique_ptr<LReader>> R;
-        R.reserve(runs.size());
-        for (auto &p : runs)
-            R.emplace_back(std::make_unique<LReader>(p));
-        std::priority_queue<Node, std::vector<Node>, Cmp> pq;
-        for (size_t i = 0; i < R.size(); ++i)
-            if (!R[i]->eof)
-                pq.push(Node{R[i]->key, i});
-        std::ofstream out(outpath, std::ios::binary);
-        if (!out)
-            throw std::runtime_error("Cannot open output " + outpath);
-        size_t written = 0;
-        while (!pq.empty())
-        {
-            auto n = pq.top();
-            pq.pop();
-            auto &rd = *R[n.i];
-            recordHeader::write_record(out, rd.key, rd.payload);
-            ++written;
-            if (rd.next())
-                pq.push(Node{rd.key, n.i});
-        }
-        spdlog::info("Final merge wrote {} records -> {}", written, outpath);
-        for (auto &p : runs)
-        {
-            std::error_code ec;
-            std::filesystem::remove(p, ec);
-        }
-        runs.clear();
-    }
-};
-
-// ---------- driver with MEMORY_CAP gate, but pipelines only
-static void usage(const char *prog)
-{
-    fmt::print(stderr,
-               "Usage: {} <input.bin> <output.bin> <tmpdir> [MEM_CAP_MiB=2048] [chunkMiB=16]\n", prog);
-}
-
-int main(int argc, char **argv)
+int main()
 {
     try
     {
-        if (argc < 4)
+        const auto input_size = fs::file_size(DATA_IN_STREAM);
+        const auto output_size = fs::file_size(DATA_OUT_STREAM);
+        if (input_size != output_size)
         {
-            usage(argv[0]);
-            return 1;
+            spdlog::error("Size mismatch: input={} bytes, output={} bytes", input_size, output_size);
+            return EXIT_FAILURE;
         }
-        const std::string inpath = argv[1];
-        const std::string outpath = argv[2];
-        const std::string tmpdir = argv[3];
-        const std::uint64_t MEM_CAP_MiB = (argc >= 5) ? std::stoull(argv[4]) : DEFAULT_MEMORY_CAP_MIB;
-        const std::uint64_t chunkMiB = (argc >= 6) ? std::stoull(argv[5]) : DEFAULT_CHUNK_MIB;
-
-        const auto fsz = std::filesystem::file_size(inpath);
-        spdlog::info("Pure Pipeline | file={} bytes (~{:.2f} MiB) | MEM_CAP={} MiB | chunk={} MiB",
-                     fsz, fsz / 1024.0 / 1024.0, MEM_CAP_MiB, chunkMiB);
-
-        const std::uint64_t capB = MEM_CAP_MiB * 1024ULL * 1024ULL;
-
-        if (fsz < capB)
-        {
-            // ------ in-memory pure pipeline: ReaderAll -> Sorter -> WriterAll
-            ReaderAll r(inpath);
-            SortStage_IV s;
-            WriterAll w(outpath);
-            ff::ff_Pipe pipe(r, s, w);
-            if (pipe.run_and_wait_end() < 0)
-            {
-                spdlog::error("Pipeline failed (in-memory)");
-                return 2;
-            }
-        }
-        else
-        {
-            // ------ out-of-core pure pipeline: ReaderChunks -> Sorter -> Spiller -> Collector(merge on EOS)
-            ReaderChunks rc(inpath, chunkMiB);
-            SortStage_OC s;
-            SpillStage sp(tmpdir);
-            CollectAndFinalMerge c(outpath);
-            ff::ff_Pipe pipe(rc, s, sp, c);
-            if (pipe.run_and_wait_end() < 0)
-            {
-                spdlog::error("Pipeline failed (OOC)");
-                return 3;
-            }
-        }
-
-        spdlog::info("Done.");
-        return 0;
+        spdlog::info("Input and output files have the same size: {} bytes", input_size);
     }
-    catch (const std::exception &e)
+    catch (const std::exception &ex)
     {
-        spdlog::error("Fatal: {}", e.what());
-        return 1;
+        spdlog::error("Filesystem error: {}", ex.what());
+        return EXIT_FAILURE;
     }
+
+    std::ifstream out(DATA_OUT_STREAM, std::ios::binary);
+    if (!out)
+    {
+        spdlog::error("Cannot open {}", DATA_OUT_STREAM);
+        return EXIT_FAILURE;
+    }
+
+    u64 total_items = 0;
+    while (true)
+    {
+        u64 key;
+        std::vector<uint8_t> payload;
+        if (!recordHeader::read_record(out, key, payload))
+            break;
+        ++total_items;
+    }
+    spdlog::info("Total Items: {}", total_items);
+
+    const int WORKERS = ff_common::detect_workers();
+    if (WORKERS <= 0)
+    {
+        spdlog::error("No workers detected.");
+        return EXIT_FAILURE;
+    }
+    spdlog::info("Workers: {}", WORKERS);
+
+    const size_t chunk_factor = 3;
+    const size_t total_chunks = static_cast<size_t>(WORKERS) * chunk_factor;
+    spdlog::info("Range configuration: workers={} chunk_factor={} total_chunks={}",
+                 WORKERS, chunk_factor, total_chunks);
+
+    std::vector<std::pair<u64, u64>> ranges;
+    ranges.reserve(total_chunks);
+
+    const u64 n = total_items;
+    const u64 q = total_chunks > 0 ? (n / static_cast<u64>(total_chunks)) : n;
+    const u64 r = total_chunks > 0 ? (n % static_cast<u64>(total_chunks)) : 0;
+
+    u64 start = 0;
+    for (size_t i = 0; i < total_chunks; ++i)
+    {
+        const u64 len = q + (static_cast<u64>(i) < r ? 1 : 0);
+        const u64 end = start + len;
+        ranges.emplace_back(start, end);
+        start = end;
+    }
+
+    spdlog::info("Record index ranges [start, end):");
+    for (size_t i = 0; i < ranges.size(); ++i)
+    {
+        spdlog::info("Range {} -> [{} , {})", i, ranges[i].first, ranges[i].second);
+    }
+
+    try
+    {
+        VerificationEmitter emitter(DATA_OUT_STREAM, std::move(ranges), WORKERS);
+        ff::ff_Farm<VerificationTask, void> farm(
+            [&]()
+            {
+                std::vector<std::unique_ptr<ff::ff_node>> workers;
+                workers.reserve(WORKERS);
+                for (int i = 0; i < WORKERS; ++i)
+                    workers.push_back(std::make_unique<VerificationWorker>(i));
+                return workers;
+            }());
+
+        farm.add_emitter(emitter);
+        farm.remove_collector();
+        farm.set_scheduling_ondemand();
+
+        if (farm.run_and_wait_end() < 0)
+        {
+            spdlog::error("Verification farm failed");
+            return EXIT_FAILURE;
+        }
+        spdlog::info("Verification completed successfully for {} record(s)", total_items);
+    }
+    catch (const std::exception &ex)
+    {
+        spdlog::error("Verification failed: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
