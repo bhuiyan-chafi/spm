@@ -2,34 +2,14 @@
  * @author ASM CHAFIULLAH BHUIYAN
  */
 #include "main.hpp"
-#include "timer.hpp"
-#include "record.hpp"
-#include "common.hpp"
-#include "spdlog/spdlog.h"
-#include "data_structure.hpp"
-
-#include <ff/ff.hpp>
-
-#include <algorithm>
-#include <atomic>
-#include <cstdint>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <memory>
-#include <queue>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
 
 /**
  * -------------- Utility Functions --------------
- * @param chunk_ranges: hold the ranges of data for a worker
+ * @param slice_ranges: hold the ranges of data for a worker
  */
 
 static inline std::vector<std::pair<size_t, size_t>>
-chunk_ranges(size_t n, size_t parts)
+slice_ranges(size_t n, size_t parts)
 {
     if (parts == 0)
         parts = 1;
@@ -51,7 +31,7 @@ chunk_ranges(size_t n, size_t parts)
  *
  * @struct TaskResult: decides type of operation
  * @param InMemBatch: if we have loaded everything in memory
- * @param RunPath: if we had to spill the data into primary chunks
+ * @param RunPath: if we had to spill the data into primary slices
  */
 struct Task
 {
@@ -116,7 +96,7 @@ namespace ff_farm
             {
                 uint64_t key;
                 std::vector<uint8_t> payload;
-                if (!recordHeader::read_record(in, key, payload))
+                if (!read_record(in, key, payload))
                     break; // EOF
                 const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
                 if (accumulator + record_size > MEMORY_CAP)
@@ -135,7 +115,7 @@ namespace ff_farm
             if (!exceeded)
             {
                 spdlog::info("Emitter: in-memory path, total items={}", input_buffer->size());
-                auto ranges = chunk_ranges(input_buffer->size(), Workers ? Workers : 1);
+                auto ranges = slice_ranges(input_buffer->size(), Workers ? Workers : 1);
                 for (size_t i = 0; i < ranges.size(); ++i)
                 {
                     auto [L, R] = ranges[i];
@@ -154,7 +134,7 @@ namespace ff_farm
             // receives the first input_buffer before breaking first read and receives the remaining slices
             auto emit_segment = [&](std::unique_ptr<ITEMS> seg)
             {
-                auto ranges = chunk_ranges(seg->size(), Workers ? Workers : 1);
+                auto ranges = slice_ranges(seg->size(), Workers ? Workers : 1);
                 for (size_t i = 0; i < ranges.size(); ++i)
                 {
                     auto [L, R] = ranges[i];
@@ -178,7 +158,7 @@ namespace ff_farm
                 {
                     uint64_t key;
                     std::vector<uint8_t> payload;
-                    if (!recordHeader::read_record(in, key, payload))
+                    if (!read_record(in, key, payload))
                     {
                         if (!segment->empty())
                             emit_segment(std::move(segment));
@@ -239,8 +219,8 @@ namespace ff_farm
                 static std::atomic<uint64_t> run_id{0};
                 const auto id = run_id.fetch_add(1, std::memory_order_relaxed);
                 const std::string path = DATA_TMP_DIR + "run_" + std::to_string(id) + ".bin";
-                auto path_copy = path; // write_temp_chunk takes non-const ref
-                common::write_temp_chunk(path_copy, *local_items);
+                auto path_copy = path; // write_temp_slice takes non-const ref
+                write_temp_slice(path_copy, *local_items);
                 delete local_items;
                 result->kind = TaskResult::Kind::RunPath;
                 result->path = new std::string(path);
@@ -320,7 +300,7 @@ namespace ff_farm
                         auto c = pq.top();
                         pq.pop();
                         const Item &it = (*inmem_batches[c.b])[c.i];
-                        recordHeader::write_record(out, it.key, it.payload);
+                        write_record(out, it.key, it.payload);
                         ++written;
                         size_t ni = c.i + 1;
                         if (ni < inmem_batches[c.b]->size())
@@ -364,7 +344,7 @@ namespace ff_farm
                             auto h = heap.top();
                             heap.pop();
                             auto &rd = *readers[h.run_index];
-                            recordHeader::write_record(out, rd.key, rd.payload);
+                            write_record(out, rd.key, rd.payload);
                             ++written;
                             rd.advance();
                             if (!rd.eof)
@@ -433,5 +413,6 @@ int main(int argc, char **argv)
         spdlog::error("Aborted: {}", e.what());
         return EXIT_FAILURE;
     }
-    spdlog::info("[Timer] Main Program total(has main thread drop delay): {}", main_program_timer.result());
+    spdlog::info("[Timer] Main Program total: {}", main_program_timer.result());
+    return EXIT_SUCCESS;
 }

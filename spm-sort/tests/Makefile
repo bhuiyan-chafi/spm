@@ -7,20 +7,24 @@ INCLUDES += -I../include/ -I../include/spdlog/include
 LINKS ?=
 
 # Default target
-all: seq_sort verify ooc_omp generator ff_pipe read_data
+all: generator verifier_ff seq_sort farm ooc_omp
 
 # --- data_generator ---
+generator: LINKS += ../include/main.cpp ./generator.cpp
+generator: INCLUDES += -I../util/ -I../include/fastflow/
 generator:
-	$(COMPILER) $(FLAGS) $(INCLUDES) ./generator.cpp -o ./generator
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./generator
 
 # --- seq_sort ---
-seq_sort: LINKS += ./seq_sort.cpp ../helpers/common.cpp ../helpers/helper.cpp
+seq_sort: LINKS += ../include/main.cpp ./seq_sort.cpp
+seq_sort: INCLUDES += -I../util/ -I../include/fastflow/
 seq_sort:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./seq_sort
 
 # --- ooc_omp ---
 ooc_omp: FLAGS += -fopenmp -pthread -ffast-math
-ooc_omp: LINKS += ./ooc_omp.cpp ../helpers/common.cpp ../helpers/helper.cpp
+ooc_omp: INCLUDES += -I../util/ -I../include/fastflow/
+ooc_omp: LINKS += ../include/main.cpp ./ooc_omp.cpp
 ooc_omp:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp
 
@@ -35,14 +39,14 @@ ff_pipe:
 
 ff_farm: FLAGS += -pthread
 ff_farm: INCLUDES += -I../include/fastflow/
-ff_farm: LINKS += ./ff_farm.cpp ../helpers/common.cpp ../helpers/helper_ff.cpp
+ff_farm: LINKS += ../include/main.cpp ./ff_farm.cpp
 ff_farm:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ff_farm
 
 # --- farm ---
 farm: FLAGS += -pthread
 farm: INCLUDES += -I../include/fastflow/ -I../util/
-farm: LINKS += ./farm.cpp ../helpers/common.cpp
+farm: LINKS += ../include/main.cpp ./farm.cpp
 farm:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./farm
 
@@ -59,8 +63,8 @@ verify:
 	$(COMPILER) $(FLAGS) $(INCLUDES) ./verify.cpp -o ./verify
 
 verifier_ff: FLAGS += -pthread
-verifier_ff: INCLUDES += -I../include/fastflow/
-verifier_ff: LINKS += ./verifier_ff.cpp
+verifier_ff: INCLUDES += -I../include/fastflow/ -I../util/
+verifier_ff: LINKS += ../include/main.cpp ./verifier_ff.cpp
 verifier_ff:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./verifier_ff
 
@@ -70,4 +74,4 @@ read_data:
 # --- clean ---
 .PHONY: clean
 clean:
-	rm -f ./seq_sort ./verify ./ooc_omp ./ff_pipe ./ff_farm ./farm ./ff_mpi ./read_data ./write_data ./verifier_ff ./verify ./generator
+	rm -f ./generator ./verifier_ff ./seq_sort ./farm ./ooc_omp

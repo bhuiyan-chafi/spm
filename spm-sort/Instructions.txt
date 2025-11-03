@@ -1,18 +1,6 @@
-1. Compile and Run: seq_sort
-
-2. Compile and Run: ooc_omp
-    compile: make ooc_omp / make ooc_omp THREADS=N
-
-3. Compile and Run: read_data
-    compile:    make read_data
-    run:        ./read_data <(0~N)> <input/output> <if_input: /file_path/..>
-                ./read_data 100 input ../data/rec_1M_256.bin
-
-4. ff_farm / farm:
-    Compile: make ff_farm / farm
-    Run:    ./farm <records in Million> <payload_max> <workers> <memory_cap>
-            ./farm 1 256 4 32
-
+Compile and Run:
+    1.  seq_sort:
+            compile: 
 5. SRUN:
     Option
         Meaning

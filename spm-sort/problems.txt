@@ -1,6 +1,9 @@
 1. In parallel OOC_OMP we set a cap 1u << 18 so that we don't use parallelization for small input size -> do some tests and put it in final report. 
+
 2. Data generated with OPEN_MP has problems so, programs were not able to execute them. Avoid parallel data generation.
+
 3. Core dumped in OOC_IMP: because we ran one extra loop beyond THREAD_LIMIT, we had 4 threads but we were executing 5 loops. 
+
 4. IN FF_PIPE -> out_of_memory_core() the MERGER was not running at all.
     CAUSE: I was using svc_end()
     Solution: eosnotify()
@@ -8,15 +11,22 @@
     This is before EOS is propagated to the next stage, so you can still emit final outputs here. That’s why emitting your STRING_VECTOR* in eosnotify() worked.
 	•	svc_end() is called when the node is about to terminate, i.e., after it has already handled EOS and (internally) propagated EOS downstream.
     By the time svc_end() runs, downstream may already have received EOS and shut down, so anything you try to ff_send_out() in svc_end() will be ignored/dropped (or simply arrive too late to be observed).
+
 5. FF_PIPE -> output mismatch
     CAUSE: because you compiled wrong code, you dumb fuck moron.
+
 6. FF_FARM -> Memory bloat
     CAUSE: emitted more chunks before the workers were finished with their current one
     Solution: on demand scheduling.
+
 7. VERIFIER_FF -> Memory Bloat, Never ending tasks of the workers
     CAUSE: 
         - emitting more chunks -> solved by on demand scheduling
         - changed the work process(instead of checking every record against the INPUT_STREAM which caused O(N^2) job, we calculated hashes of each chunk processed by the worker and a final hash to cross verify)
+
 8. WORKERS -> automating the DEFAULT = 4 gives one worker only
     CAUSE: our program generates in total worker+3 threads. Emitter, Collector and Main. If we set DEFAULT=4 then it's a disaster. 
     Solution: main doesn't consume much so give one more cpu to the workers.
+
+9. OPEN_MP/FARM -> Why are we writing intermediate_slices = slices*workers?
+    Because: If we sort and keep current MEMORY_CAP and write one file by n WORKERS then we have race condition. Writing individual files, give them liberty to operate on their own which is better than the race condition. Finally the merge will be easier, because we are not loading anything in memory again. We are performing k-way merge and writing one file sequentially.
