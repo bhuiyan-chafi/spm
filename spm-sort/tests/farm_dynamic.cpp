@@ -2,6 +2,7 @@
  * @author ASM CHAFIULLAH BHUIYAN
  */
 #include "main.hpp"
+#include <algorithm>
 #include <filesystem>
 
 /**
@@ -74,8 +75,6 @@ struct TaskResult
 namespace ff_farm
 {
     using ITEMS = std::vector<Item>;
-    constexpr std::size_t INMEM_BATCH_RECORDS = 1000;
-
     struct Emitter : ff::ff_node_t<Task>
     {
         TimerClass timer_emit;
@@ -101,9 +100,12 @@ namespace ff_farm
             {
                 spdlog::info("Emitter: in-memory path (streaming batches), total bytes={}", stream_bytes);
                 ITEMS buffer;
-                buffer.reserve(INMEM_BATCH_RECORDS);
+                buffer.reserve(64'000);
                 size_t batch_id = 0;
                 uint64_t total_items = 0;
+                const uint64_t target_batch_bytes = std::max<uint64_t>(
+                    stream_bytes / std::max<uint64_t>(worker_count, 1ULL), 1ULL);
+                uint64_t batch_bytes = 0ULL;
                 auto flush_batch = [&](ITEMS &buf)
                 {
                     if (buf.empty())
@@ -112,7 +114,8 @@ namespace ff_farm
                     slice->swap(buf);
                     ff_send_out(new Task{slice, /*spill=*/false, 0, batch_id++});
                     buf.clear();
-                    buf.reserve(INMEM_BATCH_RECORDS);
+                    buf.reserve(64'000);
+                    batch_bytes = 0ULL;
                 };
 
                 while (true)
@@ -124,9 +127,11 @@ namespace ff_farm
                         flush_batch(buffer);
                         break;
                     }
+                    const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
                     buffer.push_back(Item{key, std::move(payload)});
                     ++total_items;
-                    if (buffer.size() >= INMEM_BATCH_RECORDS)
+                    batch_bytes += record_size;
+                    if (batch_bytes >= target_batch_bytes)
                         flush_batch(buffer);
                 }
 
@@ -136,7 +141,6 @@ namespace ff_farm
 
             spdlog::info("Emitter: OOC path, streaming segments at ~MEMORY_CAP");
             size_t segment_id = 0;
-            // receives the first input_buffer before breaking first read and receives the remaining slices
             auto emit_segment = [&](std::unique_ptr<ITEMS> seg)
             {
                 if (!seg || seg->empty())
@@ -149,14 +153,13 @@ namespace ff_farm
                     slice->reserve(R - L);
                     for (size_t j = L; j < R; ++j)
                         slice->push_back(std::move((*seg)[j]));
-                    // each worker gets one Task emitted by the Emitter, with on-demand-scheduling we process have processed it
                     ff_send_out(new Task{slice, /*spill=*/true, segment_id, i});
                 }
                 ++segment_id;
             };
-            // sending the first loaded input_buffer before we broke the reading
-            auto segment = std::make_unique<ITEMS>();
+
             uint64_t accumulator = 0ULL;
+            auto segment = std::make_unique<ITEMS>();
             while (true)
             {
                 uint64_t key;
