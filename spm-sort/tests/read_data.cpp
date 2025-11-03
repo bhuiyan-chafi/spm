@@ -4,23 +4,33 @@
 #include <vector>
 #include <string>
 #include "record.hpp"
-#include "constants.hpp"
 #include "spdlog/spdlog.h"
+
+const std::string DATA_OUT_STREAM = "../data/output.bin";
+std::string DATA_IN_STREAM{""};
+std::string DATA_STREAM{""};
 
 int main(int argc, char **argv)
 {
-    if (argc < 2 || argc > 3)
+    if (argc < 3 || argc > 4)
     {
-        std::cerr << "Usage: " << argv[0] << " <records_to_print> [input|output]\n";
-        return 1;
+        spdlog::error(" <{}> <how many records to pint> <input | output> < if->input : input_file_path >", argv[0]);
+        throw std::runtime_error("Example: ./read_data 100 input ../data/rec_1M_256.bin");
     }
 
     const std::uint64_t records_to_print = std::stoull(argv[1]);
-    const std::string which = (argc == 3) ? std::string(argv[2]) : std::string("output");
+    const std::string which = argv[2];
 
-    std::string DATA_STREAM;
     if (which == "input")
+    {
+        if (!argv[3])
+        {
+            spdlog::error("If you are printing INPUT data, you have to provide file path. Example: ../data/rec_1M_256.bin");
+            return EXIT_FAILURE;
+        }
+        DATA_IN_STREAM = argv[3];
         DATA_STREAM = DATA_IN_STREAM;
+    }
     else if (which == "output")
         DATA_STREAM = DATA_OUT_STREAM;
     else

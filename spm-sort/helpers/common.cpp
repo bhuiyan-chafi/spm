@@ -1,5 +1,5 @@
 #include "data_structure.hpp"
-#include "record.hpp"
+#include "common.hpp"
 #include "constants.hpp"
 #include "spdlog/spdlog.h"
 
@@ -34,6 +34,33 @@ namespace common
         spdlog::error("==> X => Error in ESTIMATING_STREAM_SIZE.....");
         throw std::runtime_error("");
     }
+    /**
+     * ---- Generate Report for MEMORY_OOC
+     */
+    Report get_summary(uint64_t input_size, uint64_t memory_gb, uint64_t workers)
+    {
+        auto report = new Report;
+        input_size = input_size / (1024UL * 1024UL * 1024UL); // bytes to GiB
+        memory_gb = memory_gb / (1024UL * 1024UL * 1024UL);   // bytes to GiB
+        report->input_size_gb = input_size;
+        report->memory_gb = memory_gb;
+        report->workers = workers;
+        uint64_t result = input_size / memory_gb;
+        if (result % 2 != 0)
+            result++;
+        if (result < workers)
+        {
+            report->summary = "You have less Segments of you data then number of WORKERs. Which will put remaining Worker idle -> Tune your TASK";
+        }
+        else if (result > workers)
+        {
+            report->summary = "You have more Segments of you data then number of WORKERs. Which will put Emitter idle till Worker finishes with their Segments -> Tune your TASK";
+        }
+        else
+            report->summary = "Segments = Workers -> Supposed to have better performance.";
+        return *report;
+    }
+
     /**
      * load data: in memory or in chunks
      */

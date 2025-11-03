@@ -2,8 +2,25 @@
 
 2. Compile and Run: ooc_omp
     compile: make ooc_omp / make ooc_omp THREADS=N
+
 3. Compile and Run: read_data
-    compile: make read_data
-    run: ./read_data (0~N) input/output
-4. Compile and Run: ff_farm
-    compile:  make ff_farm THREADS=8
+    compile:    make read_data
+    run:        ./read_data <(0~N)> <input/output> <if_input: /file_path/..>
+                ./read_data 100 input ../data/rec_1M_256.bin
+
+4. ff_farm / farm:
+    Compile: make ff_farm / farm
+    Run:    ./farm <records in Million> <payload_max> <workers> <memory_cap>
+            ./farm 1 256 4 32
+
+5. SRUN:
+    Option
+        Meaning
+            --nodes=1: Use one physical node.
+            --ntasks=1: Run one process (no MPI ranks).
+            --cpus-per-task=7: Reserve 7 CPU cores for this one process. This is what SLURM_CPUS_PER_TASK=7 will report inside the job.
+            --time=00:05:00: Max wall-time = 5 minutes.
+            bash -lc ...: Launch your command in a login shell (good practice on some clusters).
+            > /dev/null: Discard program output.
+
+    RUN:  srun --nodes=1 --ntasks=1 --cpus-per-task=7 --time=00:05:00 bash -lc './generator 256 40904450'

@@ -9,13 +9,29 @@
 #include <iostream>
 #include <cstdint>
 
-int main()
+int main(int argc, char *argv[])
 {
-    spdlog::info("==> Welcome to the FARM experiment of our MERGE_SORT.....");
-    spdlog::info("==> Emitter(CreateChunks) -> Worker(N_Sorters) -> Collector(Sink) -> sorted_records.bin");
+    /**
+     * ------------- Setting Parameters -------------
+     */
+    spdlog::info("==> Setting Parameters Based on Inputs <==");
+    if (argc != 7)
+    {
+        spdlog::error("Parameters should be == 7 | ./ff_farm -d X -m X -w X");
+        throw std::runtime_error("");
+    }
+    else
+    {
+        std::string working_data_size = argv[3];
+        std::string working_memory_size = argv[5];
+        uint64_t demanded_workers = std::stoul(argv[7]);
+        common::set_working_parameters(working_data_size, working_memory_size, demanded_workers);
+    }
+
+    spdlog::info("==> Welcome to the FARM experiment of our MERGE_SORT <==");
+    spdlog::info("==> Emitter(CreateChunks) -> Worker(N_Sorters) -> Collector(Sink) -> sorted_records.bin <==");
     const uint64_t STREAM_SIZE = common::estimate_stream_size();
-    const int WORKERS = ff_common::detect_workers();
-    spdlog::info("==> Number of Workers assigned: {}", WORKERS);
+    spdlog::info("Number of Workers assigned: {}", WORKERS);
     try
     {
         if (STREAM_SIZE < MEMORY_CAP)
@@ -49,6 +65,9 @@ int main()
         else
         {
             spdlog::info("Mode: Out-of-memory-core FARM");
+            spdlog::info("Creating CHUNKS based on MEMORY_CAP {} GiB", MEMORY_CAP / (1024ULL * 1024ULL * 1024ULL));
+            auto report = common::get_summary(STREAM_SIZE, MEMORY_CAP, WORKERS);
+            spdlog::info("Summary: {}", report.summary);
             ff_farm_out_of_core::SegmentAndEmit emitter(DATA_IN_STREAM);
             ff_farm_out_of_core::CollectAndMerge collector(DATA_OUT_STREAM);
 

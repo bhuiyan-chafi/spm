@@ -18,13 +18,6 @@ namespace ff_common
         return static_cast<unsigned long>(::syscall(SYS_gettid));
     }
 
-    static inline int detect_workers()
-    {
-
-        uint16_t WORKERS{0};
-        return WORKERS = std::stoi(std::getenv("SLURM_CPUS_PER_TASK") ?: std::to_string(ff_numCores()));
-    }
-
     inline static std::vector<std::pair<size_t, size_t>> create_chunk_ranges(size_t n, size_t parts)
     {
         std::vector<std::pair<size_t, size_t>> ranges;

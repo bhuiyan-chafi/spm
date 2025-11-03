@@ -17,7 +17,8 @@
 /**
  * -------------------------------- Constants --------------------------------
  */
-std::string DATA_STREAM = "../data/records.bin";
+std::string DATA_STREAM{"../data/rec_"};
+
 /**
  * Parameters structure to hold command-line arguments
  */
@@ -35,17 +36,33 @@ int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        throw std::invalid_argument("Usage: ./generator <PAYLOAD_MAX> <RECORD_SIZE>");
+        throw std::invalid_argument("Usage: ./generator <PAYLOAD_MAX: 8~256> <RECORD_SIZE: 1M 5M 10M>");
         return EXIT_FAILURE;
     }
     PAYLOAD_MAX = std::stoul(argv[1]);
-    RECORD_SIZE = static_cast<std::uint64_t>(std::stod(argv[2]));
+    const std::string record_size = argv[2];
+    if (record_size == "1M")
+    {
+        RECORD_SIZE = 10'000'000ULL;
+        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+    }
+    else if (record_size == "5M")
+    {
+        RECORD_SIZE = 50'000'000ULL;
+        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+    }
+    else
+    {
+
+        RECORD_SIZE = 100'000'000ULL;
+        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+    }
     // check the data-stream
     std::ofstream data_stream_out(DATA_STREAM, std::ios::binary);
     if (!data_stream_out)
     {
 
-        throw std::runtime_error("Data strem out failed....");
+        throw std::runtime_error("Data stream out failed....");
         return EXIT_FAILURE;
     }
     // random data generation functions setup

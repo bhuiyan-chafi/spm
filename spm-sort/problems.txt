@@ -10,3 +10,13 @@
     By the time svc_end() runs, downstream may already have received EOS and shut down, so anything you try to ff_send_out() in svc_end() will be ignored/dropped (or simply arrive too late to be observed).
 5. FF_PIPE -> output mismatch
     CAUSE: because you compiled wrong code, you dumb fuck moron.
+6. FF_FARM -> Memory bloat
+    CAUSE: emitted more chunks before the workers were finished with their current one
+    Solution: on demand scheduling.
+7. VERIFIER_FF -> Memory Bloat, Never ending tasks of the workers
+    CAUSE: 
+        - emitting more chunks -> solved by on demand scheduling
+        - changed the work process(instead of checking every record against the INPUT_STREAM which caused O(N^2) job, we calculated hashes of each chunk processed by the worker and a final hash to cross verify)
+8. WORKERS -> automating the DEFAULT = 4 gives one worker only
+    CAUSE: our program generates in total worker+3 threads. Emitter, Collector and Main. If we set DEFAULT=4 then it's a disaster. 
+    Solution: main doesn't consume much so give one more cpu to the workers.

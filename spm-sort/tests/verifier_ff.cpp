@@ -1,5 +1,4 @@
 #include "record.hpp"
-#include "constants.hpp"
 #include "data_structure.hpp"
 #include "helper_ff.hpp"
 #include "spdlog/spdlog.h"
@@ -17,7 +16,9 @@
 
 using u64 = std::uint64_t;
 namespace fs = std::filesystem;
-static uint64_t TOTAL_INPUT_RECORDS{0};
+uint64_t TOTAL_INPUT_RECORDS{0};
+std::string DATA_IN_STREAM{""};
+const std::string DATA_OUT_STREAM = "../data/output.bin";
 namespace
 {
     constexpr u64 FNV_OFFSET_BASIS = 1469598103934665603ULL;
@@ -242,10 +243,16 @@ private:
     int worker_id;
 };
 
-int main()
+int main(int argc, char *argv[])
 {
     try
     {
+        if (argc != 2)
+        {
+            throw std::invalid_argument("Usage: ./verifier_ff <INPUT_FILE_PATH>");
+            return EXIT_FAILURE;
+        }
+        DATA_IN_STREAM = argv[1];
         const u64 input_hash = compute_input_payload_hash();
         global_output_hash.store(0, std::memory_order_relaxed);
         try
@@ -287,7 +294,7 @@ int main()
             spdlog::error("==X ABORTED: Total Number of RECORDs don't match X==");
             return EXIT_FAILURE;
         }
-        const int WORKERS = ff_common::detect_workers();
+        const int WORKERS = ff_numCores();
         if (WORKERS <= 0)
         {
             spdlog::error("==X No workers detected X==");

@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <atomic>
+#include <malloc.h>
 
 namespace ff_pipe_in_memory
 {
@@ -83,7 +84,6 @@ namespace ff_pipe_out_of_core
     TEMP_ITEMS *Segmenter::svc(TEMP_ITEMS *)
     {
         // spdlog::info("Processing Thread for CHUNK_LOADER tid={} cpu={}", ff_common::get_tid(), sched_getcpu());
-        spdlog::info("Creating CHUNKS based on MEMORY_CAP {} GiB", MEMORY_CAP / (1024ULL * 1024ULL * 1024ULL));
         auto temp_items = std::make_unique<TEMP_ITEMS>();
         while (true)
         {
@@ -366,7 +366,7 @@ namespace ff_farm_out_of_core
             {
                 spdlog::info("Releasing CHUNK_{}", current_stream_index++);
                 ff_send_out(temp_items.release());
-                // freeing memory
+                // freeing memory from emitters side because workers has the as private
                 temp_items = std::make_unique<TEMP_ITEMS>();
                 current_stream_size_inBytes = 0ULL;
             }
@@ -421,6 +421,8 @@ namespace ff_farm_out_of_core
     // time to perform the final merge
     void CollectAndMerge::svc_end()
     {
+        // to verify we are not loading data again memory for writing
+        malloc_trim(0);
         spdlog::info("Merging {} temporary runs:", segment_paths.size());
         /**
          * for (size_t i = 0; i < temp_record_paths->size(); ++i)
