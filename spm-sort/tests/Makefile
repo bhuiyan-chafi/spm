@@ -8,7 +8,7 @@ LINKS ?=
 
 # Default target
 all: generator verifier_ff seq_sort farm ooc_omp
-
+ 
 # --- data_generator ---
 generator: LINKS += ../include/main.cpp ./generator.cpp
 generator: INCLUDES += -I../util/ -I../include/fastflow/
@@ -57,6 +57,12 @@ ff_mpi: INCLUDES += -I./include/fastflow/
 ff_mpi: LINKS += ./ff_mpi.cpp ../helpers/common.cpp ../helpers/helper_ff.cpp
 ff_mpi:
 	$(COMPILEMPI) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ff_mpi
+
+mpi_farm: FLAGS += -pthread
+mpi_farm: INCLUDES += -I../include/fastflow/ -I../util/
+mpi_farm: LINKS += ../include/main.cpp ./mpi_farm.cpp
+mpi_farm:
+	$(COMPILEMPI) $(FLAGS) $(INCLUDES) $(LINKS) -o ./mpi_farm
 # --- verify ---
 verify: FLAGS += -fopenmp -pthread
 verify:

@@ -30,3 +30,10 @@
 
 9. OPEN_MP/FARM -> Why are we writing intermediate_slices = slices*workers?
     Because: If we sort and keep current MEMORY_CAP and write one file by n WORKERS then we have race condition. Writing individual files, give them liberty to operate on their own which is better than the race condition. Finally the merge will be easier, because we are not loading anything in memory again. We are performing k-way merge and writing one file sequentially.
+10. Performance Degradation due to load distribution
+    Cause:
+        - loading all the in the memory first
+        - giving big slices to workers
+    Solution: 
+        - load distribution (static/dynamic -> still tuning)
+11. With or without running the mapping_string.sh

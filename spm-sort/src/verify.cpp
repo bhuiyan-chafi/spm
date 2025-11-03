@@ -1,23 +1,7 @@
-#include "record.hpp"
-#include "constants.hpp"
-#include "data_structure.hpp"
-#include "helper_ff.hpp"
-#include "spdlog/spdlog.h"
-#include "ff/ff.hpp"
-
-#include <atomic>
-#include <chrono>
-#include <cstdint>
-#include <filesystem>
-#include <fstream>
-#include <memory>
-#include <stdexcept>
-#include <utility>
-#include <vector>
+#include "main.hpp"
 
 using u64 = std::uint64_t;
 namespace fs = std::filesystem;
-static uint64_t TOTAL_INPUT_RECORDS{0};
 namespace
 {
     constexpr u64 FNV_OFFSET_BASIS = 1469598103934665603ULL;
@@ -45,34 +29,26 @@ namespace
 
     u64 compute_input_payload_hash()
     {
-        spdlog::info("==> READ, COUNT, CREATE_HASH of Records from {} <==", DATA_IN_STREAM);
-
-        std::ifstream in(DATA_IN_STREAM, std::ios::binary);
+        spdlog::info("==> READ, COUNT, CREATE_HASH of Records from {} <==", DATA_INPUT);
+        std::ifstream in(DATA_INPUT, std::ios::binary);
         if (!in)
         {
-            spdlog::error("==X Cannot open input stream {} X==", DATA_IN_STREAM);
+            spdlog::error("==X Cannot open input stream {} X==", DATA_INPUT);
             throw std::runtime_error("Failed to open input stream");
         }
 
-        auto start_time = std::chrono::steady_clock::now();
         u64 sum = 0;
         u64 key = 0;
         std::vector<std::uint8_t> payload;
         u64 processed = 0;
 
-        while (recordHeader::read_record(in, key, payload))
+        while (read_record(in, key, payload))
         {
             sum += payload_hash(payload);
             ++processed;
-            if (processed % 10'000'000 == 0)
-                spdlog::info("Input hashing progress: {} records", processed);
         }
-
-        const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
-        spdlog::info("==> Input payload hash: {} | calculated all records in {:.2f}s <==",
-                     sum, elapsed);
-        TOTAL_INPUT_RECORDS = processed;
-        spdlog::info("TOTAL_INPUT_RECORDS: {}", TOTAL_INPUT_RECORDS);
+        RECORDS = processed;
+        spdlog::info("RECORDS: {}", RECORDS);
         return sum;
     }
 }
@@ -110,13 +86,11 @@ public:
 
     VerificationTask *svc(VerificationTask *) override
     {
-        spdlog::info("Emitter: preparing {} chunk(s) for verification", ranges.size());
         for (std::size_t idx = 0; idx < ranges.size(); ++idx)
         {
             auto [start, end] = ranges[idx];
             if (end <= start)
             {
-                spdlog::info("Emitter: chunk {} has no records, skipping", idx);
                 continue;
             }
 
@@ -129,15 +103,13 @@ public:
             const u64 expected = end - start;
             task->records.reserve(static_cast<std::size_t>(expected));
 
-            spdlog::info("Emitter: loading chunk {} → [{} , {}) ({} records)", idx, start, end, expected);
-
             for (u64 j = 0; j < expected; ++j)
             {
                 u64 key;
                 std::vector<std::uint8_t> payload;
-                if (!recordHeader::read_record(out, key, payload))
+                if (!read_record(out, key, payload))
                 {
-                    spdlog::error("==X Emitter: unexpected end of {} while loading chunk {} X==", DATA_OUT_STREAM, idx);
+                    spdlog::error("==X Emitter: unexpected end of {} while loading chunk {} X==", DATA_OUTPUT, idx);
                     throw std::runtime_error("Emitter failed to read expected record");
                 }
                 task->records.push_back(Item{key, std::move(payload)});
@@ -149,16 +121,12 @@ public:
                 has_last_key = true;
             }
 
-            spdlog::info("Emitter: emitted chunk {} covering [{} , {}) with {} record(s)",
-                         idx, start, end, task->records.size());
-
             if (!this->ff_send_out(task.release()))
             {
                 spdlog::error("==X Emitter: failed to dispatch chunk {} X==", idx);
                 throw std::runtime_error("Emitter failed to dispatch chunk");
             }
         }
-        spdlog::info("Emitter: all chunks dispatched");
         return this->EOS;
     }
 
@@ -181,9 +149,6 @@ public:
             return this->GO_ON;
 
         std::unique_ptr<VerificationTask> task_ptr(task);
-        const auto [start, end] = task_ptr->range;
-        spdlog::info("Worker {}: checking chunk {} covering [{} , {}) with {} record(s)",
-                     worker_id, task_ptr->chunk_id, start, end, task_ptr->records.size());
 
         auto release_task_memory = [&task_ptr]()
         {
@@ -195,7 +160,6 @@ public:
 
         if (task_ptr->records.empty())
         {
-            spdlog::info("Worker {}: chunk {} empty, nothing to check", worker_id, task_ptr->chunk_id);
             release_task_memory();
             return this->GO_ON;
         }
@@ -207,8 +171,6 @@ public:
             const u64 first_key = task_ptr->records.front().key;
             if (first_key < task_ptr->prev_last_key)
             {
-                spdlog::error("==X Worker {}: chunk {} fails boundary check (prev_last={} first={}) X==",
-                              worker_id, task_ptr->chunk_id, task_ptr->prev_last_key, first_key);
                 release_task_memory();
                 throw std::runtime_error("Output stream is not globally sorted");
             }
@@ -226,11 +188,6 @@ public:
             }
             local_hash += payload_hash(task_ptr->records[i].payload);
         }
-        spdlog::info("Worker {}: chunk {} passes sortedness check",
-                     worker_id, task_ptr->chunk_id);
-
-        spdlog::info("Worker {}: chunk {} payload hash contribution = 0x{:016x}",
-                     worker_id, task_ptr->chunk_id, local_hash);
 
         global_output_hash.fetch_add(local_hash, std::memory_order_relaxed);
 
@@ -242,22 +199,27 @@ private:
     int worker_id;
 };
 
-int main()
+int main(int argc, char *argv[])
 {
     try
     {
+        if (argc != 2)
+        {
+            throw std::invalid_argument("Usage: ./verifier_ff <INPUT_FILE_PATH>");
+            return EXIT_FAILURE;
+        }
+        parse_cli_and_set(argc, argv);
         const u64 input_hash = compute_input_payload_hash();
         global_output_hash.store(0, std::memory_order_relaxed);
         try
         {
-            const auto input_size = fs::file_size(DATA_IN_STREAM);
-            const auto output_size = fs::file_size(DATA_OUT_STREAM);
+            const auto input_size = fs::file_size(DATA_INPUT);
+            const auto output_size = fs::file_size(DATA_OUTPUT);
             if (input_size != output_size)
             {
                 spdlog::error("==X Size mismatch: input={} bytes, output={} bytes X==", input_size, output_size);
                 return EXIT_FAILURE;
             }
-            spdlog::info("Input and output files have the same size: {} bytes", input_size);
         }
         catch (const std::exception &ex)
         {
@@ -265,10 +227,10 @@ int main()
             return EXIT_FAILURE;
         }
 
-        std::ifstream out(DATA_OUT_STREAM, std::ios::binary);
+        std::ifstream out(DATA_OUTPUT, std::ios::binary);
         if (!out)
         {
-            spdlog::error("==X Cannot open {} X==", DATA_OUT_STREAM);
+            spdlog::error("==X Cannot open {} X==", DATA_OUTPUT);
             return EXIT_FAILURE;
         }
 
@@ -277,12 +239,12 @@ int main()
         {
             u64 key;
             std::vector<std::uint8_t> payload;
-            if (!recordHeader::read_record(out, key, payload))
+            if (!read_record(out, key, payload))
                 break;
             ++total_items;
         }
-        spdlog::info("==> TOTAL_OUTPUT_RECORDS: {}", total_items);
-        if (TOTAL_INPUT_RECORDS != total_items)
+        spdlog::info("TOTAL_OUTPUT_RECORDS: {}", total_items);
+        if (RECORDS != total_items)
         {
             spdlog::error("==X ABORTED: Total Number of RECORDs don't match X==");
             return EXIT_FAILURE;
@@ -293,7 +255,7 @@ int main()
             spdlog::error("==X No workers detected X==");
             return EXIT_FAILURE;
         }
-        spdlog::info("==> WORKERS: {}", WORKERS);
+        spdlog::info("WORKERS: {}", WORKERS);
 
         std::vector<std::pair<u64, u64>> ranges;
         ranges.reserve(static_cast<std::size_t>(WORKERS));
@@ -311,42 +273,37 @@ int main()
             start = end;
         }
 
-        spdlog::info("Record index ranges [start, end):");
         for (int i = 0; i < WORKERS; ++i)
-            spdlog::info("Worker {} -> [{} , {})", i, ranges[i].first, ranges[i].second);
-
-        try
-        {
-            VerificationEmitter emitter(DATA_OUT_STREAM, std::move(ranges), WORKERS);
-            ff::ff_Farm<VerificationTask, void> farm(
-                [&]()
-                {
-                    std::vector<std::unique_ptr<ff::ff_node>> workers;
-                    workers.reserve(WORKERS);
-                    for (int i = 0; i < WORKERS; ++i)
-                        workers.push_back(std::make_unique<VerificationWorker>(i));
-                    return workers;
-                }());
-
-            farm.add_emitter(emitter);
-            farm.remove_collector();
-            farm.set_scheduling_ondemand();
-
-            if (farm.run_and_wait_end() < 0)
+            try
             {
-                spdlog::error("==X Verification farm failed X==");
+                VerificationEmitter emitter(DATA_OUTPUT, std::move(ranges), WORKERS);
+                ff::ff_Farm<VerificationTask, void> farm(
+                    [&]()
+                    {
+                        std::vector<std::unique_ptr<ff::ff_node>> workers;
+                        workers.reserve(WORKERS);
+                        for (int i = 0; i < WORKERS; ++i)
+                            workers.push_back(std::make_unique<VerificationWorker>(i));
+                        return workers;
+                    }());
+
+                farm.add_emitter(emitter);
+                farm.remove_collector();
+                farm.set_scheduling_ondemand();
+
+                if (farm.run_and_wait_end() < 0)
+                {
+                    spdlog::error("==X Verification farm failed X==");
+                    return EXIT_FAILURE;
+                }
+            }
+            catch (const std::exception &ex)
+            {
+                spdlog::error("==X Verification failed: {} X==", ex.what());
                 return EXIT_FAILURE;
             }
-            spdlog::info("==>Verification completed successfully for {} record(s)", total_items);
-        }
-        catch (const std::exception &ex)
-        {
-            spdlog::error("==X Verification failed: {} X==", ex.what());
-            return EXIT_FAILURE;
-        }
 
         const u64 output_hash = global_output_hash.load(std::memory_order_relaxed);
-        spdlog::info("Output payload hash: 0x{:016x}", output_hash);
         if (output_hash != input_hash)
         {
             spdlog::error("==X Payload hash mismatch! input=0x{:016x} output=0x{:016x} X==", input_hash, output_hash);

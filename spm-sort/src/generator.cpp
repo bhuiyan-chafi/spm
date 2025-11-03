@@ -1,8 +1,10 @@
 /**
- * @author ASM CHAFIULLAH BHUIYAN
- * @file generator.cpp
- * -> generates data based on given number: 1M, 5M or 10M and payload 8~256
- * -> saves it as ../data/rec_nM_payload.bin
+ * Author: ASM CHAFIULLAH BHUIYAN, M.Sc. in Computer Science and Network, University of Pisa, Italy
+ * Contact: a.bhuiyan@studenti.unipi.it
+ * Created on: October 2025
+ * Project: Project-1(Merge Sort) problem in Parallel and Distributed Systems course,
+ * University of Pisa, Italy)
+ * You are free to use, modify, and distribute this code for educational purposes.
  */
 #include "main.hpp"
 

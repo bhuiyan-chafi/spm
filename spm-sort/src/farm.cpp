@@ -2,35 +2,15 @@
  * @author ASM CHAFIULLAH BHUIYAN
  */
 #include "main.hpp"
-#include "timer.hpp"
-#include "record.hpp"
-#include "common.hpp"
-#include "constants.hpp"
-#include "spdlog/spdlog.h"
-#include "data_structure.hpp"
-
-#include <ff/ff.hpp>
-
-#include <algorithm>
-#include <atomic>
-#include <cstdint>
-#include <cstdlib>
 #include <filesystem>
-#include <fstream>
-#include <memory>
-#include <queue>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
 
 /**
  * -------------- Utility Functions --------------
- * @param chunk_ranges: hold the ranges of data for a worker
+ * @param slice_ranges: hold the ranges of data for a worker
  */
 
 static inline std::vector<std::pair<size_t, size_t>>
-chunk_ranges(size_t n, size_t parts)
+slice_ranges(size_t n, size_t parts)
 {
     if (parts == 0)
         parts = 1;
@@ -52,7 +32,7 @@ chunk_ranges(size_t n, size_t parts)
  *
  * @struct TaskResult: decides type of operation
  * @param InMemBatch: if we have loaded everything in memory
- * @param RunPath: if we had to spill the data into primary chunks
+ * @param RunPath: if we had to spill the data into primary slices
  */
 struct Task
 {
@@ -94,6 +74,7 @@ struct TaskResult
 namespace ff_farm
 {
     using ITEMS = std::vector<Item>;
+    constexpr std::size_t INMEM_BATCH_RECORDS = 1000;
 
     struct Emitter : ff::ff_node_t<Task>
     {
@@ -110,52 +91,57 @@ namespace ff_farm
         Task *svc(Task *) override
         {
             TimerScope ts(timer_emit);
-            auto input_buffer = std::make_unique<ITEMS>();
-            uint64_t accumulator = 0;
-            bool exceeded = false;
-            while (true)
-            {
-                uint64_t key;
-                std::vector<uint8_t> payload;
-                if (!recordHeader::read_record(in, key, payload))
-                    break; // EOF
-                const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
-                if (accumulator + record_size > MEMORY_CAP)
-                {
+            const size_t worker_count = Workers ? Workers : 1;
+            namespace fs = std::filesystem;
+            std::error_code ec;
+            const auto stream_bytes = fs::file_size(DATA_INPUT, ec);
+            const bool fits_in_memory = (!ec) && stream_bytes <= MEMORY_CAP;
 
-                    exceeded = true;
-                    // we are breaking the while loop but we still have items left to read
-                    break;
-                }
-                input_buffer->push_back(Item{key, std::move(payload)});
-                accumulator += record_size;
-            }
-            // resetting the accumulator
-            accumulator = 0;
-            // if input_buffer < MEMORY_CAP : we loaded everything in memory
-            if (!exceeded)
+            if (fits_in_memory)
             {
-                spdlog::info("Emitter: in-memory path, total items={}", input_buffer->size());
-                auto ranges = chunk_ranges(input_buffer->size(), Workers ? Workers : 1);
-                for (size_t i = 0; i < ranges.size(); ++i)
+                spdlog::info("Emitter: in-memory path (streaming batches), total bytes={}", stream_bytes);
+                ITEMS buffer;
+                buffer.reserve(INMEM_BATCH_RECORDS);
+                size_t batch_id = 0;
+                uint64_t total_items = 0;
+                auto flush_batch = [&](ITEMS &buf)
                 {
-                    auto [L, R] = ranges[i];
+                    if (buf.empty())
+                        return;
                     auto *slice = new ITEMS;
-                    slice->reserve(R - L);
-                    for (size_t j = L; j < R; ++j)
-                        slice->push_back(std::move((*input_buffer)[j]));
-                    ff_send_out(new Task{slice, /*spill=*/false, 0, i});
+                    slice->swap(buf);
+                    ff_send_out(new Task{slice, /*spill=*/false, 0, batch_id++});
+                    buf.clear();
+                    buf.reserve(INMEM_BATCH_RECORDS);
+                };
+
+                while (true)
+                {
+                    uint64_t key;
+                    std::vector<uint8_t> payload;
+                    if (!read_record(in, key, payload))
+                    {
+                        flush_batch(buffer);
+                        break;
+                    }
+                    buffer.push_back(Item{key, std::move(payload)});
+                    ++total_items;
+                    if (buffer.size() >= INMEM_BATCH_RECORDS)
+                        flush_batch(buffer);
                 }
+
+                spdlog::info("Emitter: in-memory path emitted {} batches ({} items)", batch_id, total_items);
                 return EOS;
             }
 
-            // we broke the loop with one input_buffer loaded
             spdlog::info("Emitter: OOC path, streaming segments at ~MEMORY_CAP");
             size_t segment_id = 0;
             // receives the first input_buffer before breaking first read and receives the remaining slices
             auto emit_segment = [&](std::unique_ptr<ITEMS> seg)
             {
-                auto ranges = chunk_ranges(seg->size(), Workers ? Workers : 1);
+                if (!seg || seg->empty())
+                    return;
+                auto ranges = slice_ranges(seg->size(), worker_count);
                 for (size_t i = 0; i < ranges.size(); ++i)
                 {
                     auto [L, R] = ranges[i];
@@ -169,32 +155,26 @@ namespace ff_farm
                 ++segment_id;
             };
             // sending the first loaded input_buffer before we broke the reading
-            emit_segment(std::move(input_buffer));
-
-            // we are not reading again from the start, using the same input stream which starts from where it left
+            auto segment = std::make_unique<ITEMS>();
+            uint64_t accumulator = 0ULL;
             while (true)
             {
-                auto segment = std::make_unique<ITEMS>();
-                while (true)
+                uint64_t key;
+                std::vector<uint8_t> payload;
+                if (!read_record(in, key, payload))
                 {
-                    uint64_t key;
-                    std::vector<uint8_t> payload;
-                    if (!recordHeader::read_record(in, key, payload))
-                    {
-                        if (!segment->empty())
-                            emit_segment(std::move(segment));
-                        return EOS;
-                    }
-                    const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
-                    if (accumulator + record_size > MEMORY_CAP && !segment->empty())
-                    {
-                        emit_segment(std::move(segment));
-                        segment = std::make_unique<ITEMS>();
-                        accumulator = 0;
-                    }
-                    segment->push_back(Item{key, std::move(payload)});
-                    accumulator += record_size;
+                    emit_segment(std::move(segment));
+                    return EOS;
                 }
+                const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
+                if (accumulator + record_size > MEMORY_CAP && !segment->empty())
+                {
+                    emit_segment(std::move(segment));
+                    segment = std::make_unique<ITEMS>();
+                    accumulator = 0ULL;
+                }
+                segment->push_back(Item{key, std::move(payload)});
+                accumulator += record_size;
             }
         }
         void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
@@ -240,8 +220,8 @@ namespace ff_farm
                 static std::atomic<uint64_t> run_id{0};
                 const auto id = run_id.fetch_add(1, std::memory_order_relaxed);
                 const std::string path = DATA_TMP_DIR + "run_" + std::to_string(id) + ".bin";
-                auto path_copy = path; // write_temp_chunk takes non-const ref
-                common::write_temp_chunk(path_copy, *local_items);
+                auto path_copy = path; // write_temp_slice takes non-const ref
+                write_temp_slice(path_copy, *local_items);
                 delete local_items;
                 result->kind = TaskResult::Kind::RunPath;
                 result->path = new std::string(path);
@@ -321,7 +301,7 @@ namespace ff_farm
                         auto c = pq.top();
                         pq.pop();
                         const Item &it = (*inmem_batches[c.b])[c.i];
-                        recordHeader::write_record(out, it.key, it.payload);
+                        write_record(out, it.key, it.payload);
                         ++written;
                         size_t ni = c.i + 1;
                         if (ni < inmem_batches[c.b]->size())
@@ -330,7 +310,7 @@ namespace ff_farm
                     for (auto *p : inmem_batches)
                         delete p;
                     inmem_batches.clear();
-                    spdlog::info("Collector(inmem): wrote {} records -> {}", written, DATA_OUT_STREAM);
+                    spdlog::info("Collector(inmem): wrote {} records -> {}", written, DATA_OUTPUT);
                 }
                 else
                 {
@@ -365,13 +345,13 @@ namespace ff_farm
                             auto h = heap.top();
                             heap.pop();
                             auto &rd = *readers[h.run_index];
-                            recordHeader::write_record(out, rd.key, rd.payload);
+                            write_record(out, rd.key, rd.payload);
                             ++written;
                             rd.advance();
                             if (!rd.eof)
                                 heap.push(HeapNode{rd.key, h.run_index});
                         }
-                        spdlog::info("Collector(ooc): wrote {} records -> {}", written, DATA_OUT_STREAM);
+                        spdlog::info("Collector(ooc): wrote {} records -> {}", written, DATA_OUTPUT);
 
                         for (auto &p : run_paths)
                         {
@@ -407,8 +387,8 @@ int main(int argc, char **argv)
         spdlog::info("==> FASTFLOW FARM implementation with MEMORY_CAP <==");
         parse_cli_and_set(argc, argv);
         auto timings = std::make_shared<Timings>(WORKERS);
-        Emitter emitter(DATA_IN_STREAM, WORKERS);
-        Collector collector(DATA_OUT_STREAM);
+        Emitter emitter(DATA_INPUT, WORKERS);
+        Collector collector(DATA_OUTPUT);
 
         ff::ff_Farm<Task, TaskResult> farm([&]()
                                            {
@@ -426,7 +406,7 @@ int main(int argc, char **argv)
             spdlog::error("Farm execution failed");
             return EXIT_FAILURE;
         }
-        spdlog::info("==> Completed FARM → {}", DATA_OUT_STREAM);
+        spdlog::info("==> Completed FARM → {}", DATA_OUTPUT);
         spdlog::info("==> [Timer] Workers sum: {}", timings->total_str());
     }
     catch (const std::exception &e)
@@ -434,5 +414,6 @@ int main(int argc, char **argv)
         spdlog::error("Aborted: {}", e.what());
         return EXIT_FAILURE;
     }
-    spdlog::info("[Timer] Main Program total(has main thread drop delay): {}", main_program_timer.result());
+    spdlog::info("[Timer] Main Program total: {}", main_program_timer.result());
+    return EXIT_SUCCESS;
 }
