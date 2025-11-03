@@ -17,7 +17,7 @@
 /**
  * -------------------------------- Constants --------------------------------
  */
-std::string DATA_STREAM{"../data/rec_"};
+std::string DATA_STREAM{""};
 
 /**
  * Parameters structure to hold command-line arguments
@@ -39,24 +39,31 @@ int main(int argc, char *argv[])
         throw std::invalid_argument("Usage: ./generator <PAYLOAD_MAX: 8~256> <RECORD_SIZE: 1M 5M 10M>");
         return EXIT_FAILURE;
     }
-    PAYLOAD_MAX = std::stoul(argv[1]);
-    const std::string record_size = argv[2];
-    if (record_size == "1M")
+    std::string payload = argv[1];
+    std::string records = argv[2];
+
+    PAYLOAD_MAX = std::stoul(payload);
+    if (records == "1M")
     {
         RECORD_SIZE = 10'000'000ULL;
-        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+        DATA_STREAM = "../data/rec_" + records + "_" + payload + ".bin";
     }
-    else if (record_size == "5M")
+    else if (records == "5M")
     {
         RECORD_SIZE = 50'000'000ULL;
-        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+        DATA_STREAM = "../data/rec_" + records + "_" + payload + ".bin";
     }
-    else
+    else if (records == "10M")
     {
 
         RECORD_SIZE = 100'000'000ULL;
-        DATA_STREAM = DATA_STREAM + "../data/rec_" + argv[2] + "M_" + argv[1] + ".bin";
+        DATA_STREAM = "../data/rec_" + records + "_" + payload + ".bin";
     }
+    else
+    {
+        spdlog::error("Records must be: 1M/5M/10M, you provided: {}", records);
+    }
+    spdlog::info("Final path: {}", DATA_STREAM);
     // check the data-stream
     std::ofstream data_stream_out(DATA_STREAM, std::ios::binary);
     if (!data_stream_out)
