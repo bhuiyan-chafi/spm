@@ -88,7 +88,7 @@ void parse_cli_and_set(int argc, char **argv)
     }
 }
 
-void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload)
+void write_record(std::ostream &stream_out, uint64_t key, const std::vector<uint8_t> &payload)
 {
     if (!stream_out)
     {
@@ -102,7 +102,7 @@ void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &
 }
 
 bool read_record(std::istream &stream_in, uint64_t &key_out,
-                 CompactPayload &payload_out)
+                 std::vector<uint8_t> &payload_out)
 {
     Record record{};
     // this is one extra read, but this is just to test
@@ -124,7 +124,7 @@ void load_all_data_in_memory(std::vector<Item> &items, std::ifstream &in)
     while (true)
     {
         uint64_t key;
-        CompactPayload payload;
+        std::vector<uint8_t> payload;
         if (!read_record(in, key, payload))
         {
             break; // EOF
@@ -234,7 +234,7 @@ void sort_out_of_core()
     {
         TimerScope sswt(slice_sort_write_time);
         uint64_t key;
-        CompactPayload payload;
+        std::vector<uint8_t> payload;
         if (!read_record(in, key, payload))
         {
             if (!temp_items.empty())

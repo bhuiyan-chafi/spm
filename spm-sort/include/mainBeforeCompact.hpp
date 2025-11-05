@@ -3,7 +3,6 @@
 #include "timer.hpp"
 #include "spdlog/spdlog.h"
 #include "timer.hpp"
-#include "compact_payload.hpp"
 
 #include <mutex>
 #include <queue>
@@ -82,19 +81,19 @@ struct Record
 struct Item
 {
     uint64_t key;
-    CompactPayload payload; // Only 8 bytes overhead (was 24 with std::vector)
+    std::vector<uint8_t> payload; // payload bytes
 };
 /**
  *  Reading just one record: [u64 key][u32 len][len bytes payload]
  */
 bool read_record(std::istream &stream_in, uint64_t &key_out,
-                 CompactPayload &payload_out);
+                 std::vector<uint8_t> &payload_out);
 struct TempReader
 {
     std::ifstream in;
     bool eof = false;
     uint64_t key = 0;
-    CompactPayload payload;
+    std::vector<uint8_t> payload;
 
     explicit TempReader(const std::string &path) : in(path, std::ios::binary)
     {
@@ -109,7 +108,7 @@ struct TempReader
         {
             eof = true;
             // Drop any reserved capacity to avoid lingering large buffers
-            CompactPayload().operator=(std::move(payload));
+            std::vector<uint8_t>().swap(payload);
         }
     }
 };
@@ -129,7 +128,7 @@ void parse_cli_and_set(int argc, char **argv);
 /**
  *  Writing just one record: [u64 key][u32 len][len bytes payload]
  */
-void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload);
+void write_record(std::ostream &stream_out, uint64_t key, const std::vector<uint8_t> &payload);
 
 // load data in memory
 void load_all_data_in_memory(std::vector<Item> &items, std::ifstream &in);

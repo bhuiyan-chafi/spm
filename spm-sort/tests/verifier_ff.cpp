@@ -18,7 +18,7 @@ namespace
         return hash;
     }
 
-    inline u64 payload_hash(const std::vector<std::uint8_t> &payload) noexcept
+    inline u64 payload_hash(const CompactPayload &payload) noexcept
     {
         if (payload.empty())
             return FNV_OFFSET_BASIS;
@@ -39,7 +39,7 @@ namespace
 
         u64 sum = 0;
         u64 key = 0;
-        std::vector<std::uint8_t> payload;
+        CompactPayload payload;
         u64 processed = 0;
 
         while (read_record(in, key, payload))
@@ -106,7 +106,7 @@ public:
             for (u64 j = 0; j < expected; ++j)
             {
                 u64 key;
-                std::vector<std::uint8_t> payload;
+                CompactPayload payload;
                 if (!read_record(out, key, payload))
                 {
                     spdlog::error("==X Emitter: unexpected end of {} while loading chunk {} X==", DATA_OUTPUT, idx);
@@ -153,7 +153,7 @@ public:
         auto release_task_memory = [&task_ptr]()
         {
             for (auto &item : task_ptr->records)
-                std::vector<std::uint8_t>().swap(item.payload);
+                item.payload = CompactPayload(); // Release memory
             task_ptr->records.clear();
             task_ptr->records.shrink_to_fit();
         };
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
         while (true)
         {
             u64 key;
-            std::vector<std::uint8_t> payload;
+            CompactPayload payload;
             if (!read_record(out, key, payload))
                 break;
             ++total_items;

@@ -37,3 +37,8 @@
     Solution: 
         - load distribution (static/dynamic -> still tuning)
 11. With or without running the mapping_string.sh
+
+12. OpenMP -> MemoryBloat
+    CAUSE:
+        - some vector were not freed after writing the intermediate slices
+        - the biggest shock is STD::SORT() consumes N*log(N) space and in some case 2N. That's why in memory sort sky rocketed.

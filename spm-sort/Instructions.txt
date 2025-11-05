@@ -11,4 +11,7 @@ Compile and Run:
             bash -lc ...: Launch your command in a login shell (good practice on some clusters).
             > /dev/null: Discard program output.
 
-    RUN:  srun --nodes=1 --ntasks=1 --cpus-per-task=7 --time=00:05:00 bash -lc './generator 256 40904450'
+    RUN:  
+        srun --nodes=1 --ntasks=1 --cpus-per-task=7 --time=00:05:00 bash -lc './generator 1M 256'
+    With Terminal Back to You:
+        srun --nodes=1 --ntasks=1 --cpus-per-task=1 --time=00:05:00 bash -lc './generator 5M 128' &
