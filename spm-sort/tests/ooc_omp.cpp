@@ -1,5 +1,6 @@
 /**
- * @ISSUE: has the std::sort overhead which uses typically Nlog(N) memory spaces while sorting, at worst case O(N)
+ * @ISSUE: has the std::sort overhead which uses typically Nlog(N) memory spaces while sorting, at worst case O(N) -> it was not the major issue
+ * @ISSUE: the main issue was std::vector<Items> where std::vector has an overhead of 24bytes/item. 10M * 24 bytes is huge.
  */
 #include "main.hpp"
 

@@ -15,3 +15,7 @@ Compile and Run:
         srun --nodes=1 --ntasks=1 --cpus-per-task=7 --time=00:05:00 bash -lc './generator 1M 256'
     With Terminal Back to You:
         srun --nodes=1 --ntasks=1 --cpus-per-task=1 --time=00:05:00 bash -lc './generator 5M 128' &
+
+        bash -lc './generator 1M 256' > /dev/null 2>&1 &
+
+        bash -lc './generator 1M 256' > generator.log 2>&1 &
