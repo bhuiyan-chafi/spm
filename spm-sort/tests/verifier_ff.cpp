@@ -29,11 +29,11 @@ namespace
 
     u64 compute_input_payload_hash()
     {
-        spdlog::info("==> READ, COUNT, CREATE_HASH of Records from {} <==", DATA_INPUT);
+        // spdlog::info("==> READ, COUNT, CREATE_HASH of Records from {} <==", DATA_INPUT);
         std::ifstream in(DATA_INPUT, std::ios::binary);
         if (!in)
         {
-            spdlog::error("==X Cannot open input stream {} X==", DATA_INPUT);
+            // spdlog::error("==X Cannot open input stream {} X==", DATA_INPUT);
             throw std::runtime_error("Failed to open input stream");
         }
 
@@ -48,7 +48,7 @@ namespace
             ++processed;
         }
         RECORDS = processed;
-        spdlog::info("RECORDS: {}", RECORDS);
+        // spdlog::info("RECORDS: {}", RECORDS);
         return sum;
     }
 }
@@ -74,12 +74,12 @@ public:
     {
         if (!out)
         {
-            spdlog::error("==X Emitter: cannot open {} X==", out_path);
+            // spdlog::error("==X Emitter: cannot open {} X==", out_path);
             throw std::runtime_error("Emitter failed to open output stream");
         }
         if (worker_count <= 0)
         {
-            spdlog::error("==X Emitter: invalid worker count {} X==", worker_count);
+            // spdlog::error("==X Emitter: invalid worker count {} X==", worker_count);
             throw std::runtime_error("Emitter requires at least one worker");
         }
     }
@@ -109,7 +109,7 @@ public:
                 CompactPayload payload;
                 if (!read_record(out, key, payload))
                 {
-                    spdlog::error("==X Emitter: unexpected end of {} while loading chunk {} X==", DATA_OUTPUT, idx);
+                    // spdlog::error("==X Emitter: unexpected end of {} while loading chunk {} X==", DATA_OUTPUT, idx);
                     throw std::runtime_error("Emitter failed to read expected record");
                 }
                 task->records.push_back(Item{key, std::move(payload)});
@@ -123,7 +123,7 @@ public:
 
             if (!this->ff_send_out(task.release()))
             {
-                spdlog::error("==X Emitter: failed to dispatch chunk {} X==", idx);
+                // spdlog::error("==X Emitter: failed to dispatch chunk {} X==", idx);
                 throw std::runtime_error("Emitter failed to dispatch chunk");
             }
         }
@@ -180,9 +180,9 @@ public:
         {
             if (task_ptr->records[i - 1].key > task_ptr->records[i].key)
             {
-                spdlog::error("==X Worker {}: chunk {} fails local sortedness at position {} ({} > {}) X==",
-                              worker_id, task_ptr->chunk_id, i - 1,
-                              task_ptr->records[i - 1].key, task_ptr->records[i].key);
+                // spdlog::error("==X Worker {}: chunk {} fails local sortedness at position {} ({} > {}) X==",
+                //               worker_id, task_ptr->chunk_id, i - 1,
+                //               task_ptr->records[i - 1].key, task_ptr->records[i].key);
                 release_task_memory();
                 throw std::runtime_error("Chunk is not sorted in non-decreasing order");
             }
@@ -217,20 +217,20 @@ int main(int argc, char *argv[])
             const auto output_size = fs::file_size(DATA_OUTPUT);
             if (input_size != output_size)
             {
-                spdlog::error("==X Size mismatch: input={} bytes, output={} bytes X==", input_size, output_size);
+                // spdlog::error("==X Size mismatch: input={} bytes, output={} bytes X==", input_size, output_size);
                 return EXIT_FAILURE;
             }
         }
         catch (const std::exception &ex)
         {
-            spdlog::error("==X Filesystem error: {} X==", ex.what());
+            // spdlog::error("==X Filesystem error: {} X==", ex.what());
             return EXIT_FAILURE;
         }
 
         std::ifstream out(DATA_OUTPUT, std::ios::binary);
         if (!out)
         {
-            spdlog::error("==X Cannot open {} X==", DATA_OUTPUT);
+            // spdlog::error("==X Cannot open {} X==", DATA_OUTPUT);
             return EXIT_FAILURE;
         }
 
@@ -243,19 +243,19 @@ int main(int argc, char *argv[])
                 break;
             ++total_items;
         }
-        spdlog::info("TOTAL_OUTPUT_RECORDS: {}", total_items);
+        // spdlog::info("TOTAL_OUTPUT_RECORDS: {}", total_items);
         if (RECORDS != total_items)
         {
-            spdlog::error("==X ABORTED: Total Number of RECORDs don't match X==");
+            // spdlog::error("==X ABORTED: Total Number of RECORDs don't match X==");
             return EXIT_FAILURE;
         }
         const int WORKERS = ff_numCores();
         if (WORKERS <= 0)
         {
-            spdlog::error("==X No workers detected X==");
+            // spdlog::error("==X No workers detected X==");
             return EXIT_FAILURE;
         }
-        spdlog::info("WORKERS: {}", WORKERS);
+        // spdlog::info("WORKERS: {}", WORKERS);
 
         std::vector<std::pair<u64, u64>> ranges;
         ranges.reserve(static_cast<std::size_t>(WORKERS));
@@ -293,27 +293,28 @@ int main(int argc, char *argv[])
 
                 if (farm.run_and_wait_end() < 0)
                 {
-                    spdlog::error("==X Verification farm failed X==");
+                    // spdlog::error("==X Verification farm failed X==");
                     return EXIT_FAILURE;
                 }
             }
             catch (const std::exception &ex)
             {
-                spdlog::error("==X Verification failed: {} X==", ex.what());
+                // spdlog::error("==X Verification failed: {} X==", ex.what());
                 return EXIT_FAILURE;
             }
 
         const u64 output_hash = global_output_hash.load(std::memory_order_relaxed);
         if (output_hash != input_hash)
         {
-            spdlog::error("==X Payload hash mismatch! input=0x{:016x} output=0x{:016x} X==", input_hash, output_hash);
+            // spdlog::error("==X Payload hash mismatch! input=0x{:016x} output=0x{:016x} X==", input_hash, output_hash);
             return EXIT_FAILURE;
         }
-        spdlog::info("==> Payload hash matches INPUT={} : OUTPUT={}", input_hash, output_hash);
+        // spdlog::info("==> Payload hash matches INPUT={} : OUTPUT={}", input_hash, output_hash);
+        spdlog::info("==> Verification Completed <==");
     }
     catch (const std::exception &ex)
     {
-        spdlog::error("==X Verification aborted: {} X==", ex.what());
+        // spdlog::error("==X Verification aborted: {} X==", ex.what());
         return EXIT_FAILURE;
     }
 

@@ -1,9 +1,9 @@
+#include "main.hpp"
 #include <iostream>
 #include <fstream>
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "record.hpp"
 #include "spdlog/spdlog.h"
 
 const std::string DATA_OUT_STREAM = "../data/output.bin";
@@ -47,10 +47,10 @@ int main(int argc, char **argv)
     }
 
     std::uint64_t key;
-    std::vector<std::uint8_t> payload;
+    CompactPayload payload;
     std::uint64_t printed = 0;
 
-    while (printed < records_to_print && recordHeader::read_record(in, key, payload))
+    while (printed < records_to_print && read_record(in, key, payload))
     {
         std::cout << "rec#" << printed
                   << " \tkey=" << key

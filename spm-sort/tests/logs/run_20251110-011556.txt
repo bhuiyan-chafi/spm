@@ -1,0 +1,19 @@
+Starting test run at lunedì, novembre 10, 2025 - 01:15:56 
+
+[2025-11-10 01:16:03.505] [info] M: IN_MEMORY | R: 1M | PS: 256 | W: 1 | DC:NONE | WT: 386.966 ms | TT: 6.755 s
+[2025-11-10 01:16:05.133] [info] ==> Verification Completed <==
+[2025-11-10 01:16:25.854] [info] M: IN_MEMORY | R: 5M | PS: 128 | W: 1 | DC:NONE | WT: 1.767 s | TT: 20.711 s
+[2025-11-10 01:16:32.324] [info] ==> Verification Completed <==
+[2025-11-10 01:17:10.636] [info] M: IN_MEMORY | R: 5M | PS: 256 | W: 1 | DC:NONE | WT: 2.003 s | TT: 38.306 s
+[2025-11-10 01:17:18.877] [info] ==> Verification Completed <==
+[2025-11-10 01:17:51.392] [info] M: IN_MEMORY | R: 10M | PS: 64 | W: 1 | DC:NONE | WT: 3.037 s | TT: 32.512 s
+[2025-11-10 01:18:01.727] [info] ==> Verification Completed <==
+[2025-11-10 01:18:50.196] [info] M: IN_MEMORY | R: 10M | PS: 128 | W: 1 | DC:NONE | WT: 4.368 s | TT: 48.434 s
+[2025-11-10 01:19:02.645] [info] ==> Verification Completed <==
+[2025-11-10 01:21:53.917] [info] M: IN_MEMORY | R: 100M | PS: 16 | W: 1 | DC:NONE | WT: 34.769 s | TT: 2.854 min
+[2025-11-10 01:23:32.956] [info] ==> Verification Completed <==
+[2025-11-10 01:26:58.797] [info] M: IN_MEMORY | R: 100M | PS: 32 | W: 1 | DC:NONE | WT: 38.748 s | TT: 3.429 min
+[2025-11-10 01:28:45.514] [info] ==> Verification Completed <==
+[2025-11-10 01:37:41.922] [info] M: MEMORY_OOC | R: 100M | PS: 256 | W: 1 | DC:NONE | WT: 7.451 min | TT: 8.939 min
+[2025-11-10 01:40:47.926] [info] ==> Verification Completed <==
+All steps completed at lunedì, novembre 10, 2025 - 01:40:48 

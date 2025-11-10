@@ -1,4 +1,5 @@
 /**
+ * @file record.hpp
  * Author: ASM CHAFIULLAH BHUIYAN, M.Sc. in Computer Science and Network, University of Pisa, Italy
  * Contact: a.bhuiyan@studenti.unipi.it
  * Created on: October 2025
@@ -41,10 +42,11 @@ int main(int argc, char *argv[])
         {
             const uint64_t key = key_dist(seeder);
             const uint32_t len = static_cast<uint32_t>(len_dist(seeder));
-            std::vector<uint8_t> payload(len); // length between 8 and PAYLOAD_MAX
-            for (auto &bytes : payload)
+            CompactPayload payload; // length between 8 and PAYLOAD_MAX
+            payload.resize(len);
+            for (uint32_t i = 0; i < len; ++i)
             {
-                bytes = static_cast<std::uint8_t>(
+                payload[i] = static_cast<std::uint8_t>(
                     upper_or_lower(seeder) ? lower_dist(seeder) : upper_dist(seeder));
             }
             write_record(data_stream_out, key, payload);

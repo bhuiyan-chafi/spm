@@ -1,6 +1,5 @@
 /**
- * @ISSUE: has the std::sort overhead which uses typically Nlog(N) memory spaces while sorting, at worst case O(N) -> it was not the major issue
- * @ISSUE: the main issue was std::vector<Items> where std::vector has an overhead of 24bytes/item. 10M * 24 bytes is huge.
+ * memory bloats with large file size
  */
 #include "main.hpp"
 
@@ -43,6 +42,22 @@ namespace omp_sort
             size_t slice_index;
         };
 
+        enum class ResultKind
+        {
+            InMemBatch,
+            RunPath
+        };
+
+        struct TaskResult
+        {
+            ResultKind kind{ResultKind::InMemBatch};
+            bool spill{false};
+            size_t segment_id{0};
+            size_t slice_index{0};
+            std::unique_ptr<Items> items;
+            std::string path;
+        };
+
         std::vector<std::pair<size_t, size_t>>
         slice_ranges(size_t n, size_t parts)
         {
@@ -66,90 +81,105 @@ namespace omp_sort
         {
             return sizeof(uint64_t) + sizeof(uint32_t) + item.payload.size();
         }
-
-        struct SegmentReader
+        // create tasks for the worker
+        std::vector<Task> emit_tasks(size_t workers, bool &saw_spill)
         {
-            std::ifstream in;
-            std::optional<PendingRecord> carry;
-            bool eof = false;
-            uint64_t accumulated_total = 0ULL; // Track total bytes read across all segments
-
-            explicit SegmentReader(const std::string &path) : in(path, std::ios::binary)
+            std::ifstream in(DATA_INPUT, std::ios::binary);
+            if (!in)
             {
-                if (!in)
-                {
-                    spdlog::error("SegmentReader: cannot open input {}", path);
-                    throw std::runtime_error("Input stream error");
-                }
+                spdlog::error("Emitter: cannot open input {}", DATA_INPUT);
+                throw std::runtime_error("Input stream error");
             }
 
-            std::unique_ptr<Items> read_next_segment()
-            {
-                if (eof)
-                    return nullptr;
+            std::vector<Task> tasks;
+            std::optional<PendingRecord> carry;
+            size_t segment_id = 0;
+            saw_spill = false;
 
+            while (true)
+            {
                 auto segment = std::make_unique<Items>();
-                uint64_t accumulated_chunk = 0ULL; // For this chunk only
+                uint64_t accumulated = 0ULL;
+                bool eof_reached = false;
+                bool overflow = false;
 
                 if (carry)
                 {
-                    accumulated_chunk += carry->bytes;
+                    accumulated += carry->bytes;
                     segment->push_back(std::move(carry->item));
                     carry.reset();
                 }
-
+                // read -> check -> carry or push
                 while (true)
                 {
                     uint64_t key;
                     CompactPayload payload;
                     if (!read_record(in, key, payload))
                     {
-                        eof = true;
+                        eof_reached = true;
                         break;
                     }
                     Item next{key, std::move(payload)};
                     const uint64_t next_size = record_size_bytes(next);
-                    // Use DISTRIBUTION_CAP for chunked reading
-                    if (!segment->empty() && accumulated_chunk + next_size > DISTRIBUTION_CAP)
+                    // carry
+                    if (!segment->empty() && accumulated + next_size > MEMORY_CAP)
                     {
                         carry = PendingRecord{Item{next.key, std::move(next.payload)}, next_size};
+                        overflow = true;
                         break;
                     }
-                    accumulated_chunk += next_size;
+                    accumulated += next_size;
+                    // push
                     segment->push_back(std::move(next));
                 }
 
                 if (segment->empty())
-                    return nullptr;
+                {
+                    // means one segment is complete
+                    if (overflow)
+                        continue;
+                    // means EOF
+                    break;
+                }
+                // decide if we have to write this segment -> OOC operation
+                const bool segment_spill = saw_spill || overflow || carry.has_value();
+                saw_spill = saw_spill || segment_spill;
+                // now we have one segment = MEMORY_CAP
+                // distribute them among workers
+                auto ranges = slice_ranges(segment->size(), workers);
+                for (size_t i = 0; i < ranges.size(); ++i)
+                {
+                    auto [L, R] = ranges[i];
+                    auto slice = std::make_unique<Items>();
+                    slice->reserve(R - L);
+                    for (size_t j = L; j < R; ++j)
+                        slice->push_back(std::move((*segment)[j]));
+                    tasks.push_back(Task{std::move(slice), segment_spill, segment_id, i});
+                }
+                ++segment_id;
 
-                // Update total accumulated across all chunks
-                accumulated_total += accumulated_chunk;
-
-                return segment;
+                if (eof_reached && !carry.has_value())
+                    break;
             }
-        };
 
-        std::vector<Task> process_segment(std::unique_ptr<Items> segment, size_t segment_id,
-                                          size_t threads)
+            return tasks;
+        }
+        // the distributor and sorter -> worker
+        std::vector<TaskResult> process_tasks(std::vector<Task> tasks, size_t threads, bool saw_spill)
         {
-            if (!segment || segment->empty())
+            if (tasks.empty())
                 return {};
 
-            auto ranges = slice_ranges(segment->size(), threads);
-            std::vector<Task> tasks;
-            tasks.reserve(ranges.size());
-
-            for (size_t i = 0; i < ranges.size(); ++i)
+            if (saw_spill)
             {
-                auto [L, R] = ranges[i];
-                auto slice = std::make_unique<Items>();
-                slice->reserve(R - L);
-                for (size_t j = L; j < R; ++j)
-                    slice->push_back(std::move((*segment)[j]));
-                tasks.push_back(Task{std::move(slice), false, segment_id, i});
+                std::error_code ec;
+                std::filesystem::create_directories(DATA_TMP_DIR, ec);
+                if (ec)
+                    spdlog::warn("Could not ensure tmp dir {} exists: {}", DATA_TMP_DIR, ec.message());
             }
 
-            // segment destroyed here, memory freed
+            std::vector<TaskResult> results(tasks.size());
+            static std::atomic<uint64_t> run_id{0};
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(static_cast<int>(threads))
@@ -161,81 +191,93 @@ namespace omp_sort
                 std::sort(local_items->begin(), local_items->end(),
                           [](const Item &a, const Item &b)
                           { return a.key < b.key; });
+
+                TaskResult result;
+                result.spill = task.spill;
+                result.segment_id = task.segment_id;
+                result.slice_index = task.slice_index;
+                if (!task.spill)
+                {
+                    result.kind = ResultKind::InMemBatch;
+                    result.items = std::move(task.items);
+                }
+                else
+                {
+                    result.kind = ResultKind::RunPath;
+                    const auto id = run_id.fetch_add(1, std::memory_order_relaxed);
+                    result.path = DATA_TMP_DIR + "run_" + std::to_string(id) + ".bin";
+                    write_temp_slice(result.path, *local_items);
+                }
+                results[i] = std::move(result);
             }
 
-            // Return tasks for collector to process
-            return tasks;
+            return results;
         }
-
-        std::string flush_accumulated_tasks(std::vector<std::vector<Task>> &all_tasks)
+        // all the TaskResults are collected and performed final merge and write
+        void finalize_in_memory(std::vector<TaskResult> &results)
         {
-            static std::atomic<uint64_t> run_id{0};
-            const auto id = run_id.fetch_add(1, std::memory_order_relaxed);
-            const std::string path = DATA_TMP_DIR + "run_" + std::to_string(id) + ".bin";
-
-            std::error_code ec;
-            std::filesystem::create_directories(DATA_TMP_DIR, ec);
-            if (ec)
-                spdlog::warn("Could not ensure tmp dir {} exists: {}", DATA_TMP_DIR, ec.message());
-
-            std::ofstream out(path, std::ios::binary);
+            std::ofstream out(DATA_OUTPUT, std::ios::binary);
             if (!out)
-                throw std::runtime_error("Cannot open temp file for flush");
+                throw std::runtime_error("Collector(inmem): cannot open output");
 
-            struct HeapItem
+            struct CurrentItem
             {
-                size_t batch_idx;
-                size_t task_idx;
-                size_t item_idx;
+                size_t batch_index;
+                size_t item_index;
                 uint64_t key;
             };
             struct Compare
             {
-                bool operator()(const HeapItem &a, const HeapItem &b) const
+                bool operator()(const CurrentItem &a, const CurrentItem &b) const
                 {
                     return a.key > b.key;
                 }
             };
 
-            std::priority_queue<HeapItem, std::vector<HeapItem>, Compare> heap;
-            for (size_t b = 0; b < all_tasks.size(); ++b)
-                for (size_t t = 0; t < all_tasks[b].size(); ++t)
-                    if (all_tasks[b][t].items && !all_tasks[b][t].items->empty())
-                        heap.push(HeapItem{b, t, 0, (*all_tasks[b][t].items)[0].key});
+            std::vector<std::unique_ptr<Items>> batches;
+            batches.reserve(results.size());
+            for (auto &res : results)
+                if (res.kind == ResultKind::InMemBatch && res.items && !res.items->empty())
+                    batches.push_back(std::move(res.items));
+
+            std::priority_queue<CurrentItem, std::vector<CurrentItem>, Compare> heap;
+            for (size_t b = 0; b < batches.size(); ++b)
+                heap.push(CurrentItem{b, 0, (*batches[b])[0].key});
 
             size_t written = 0;
             while (!heap.empty())
             {
                 auto current = heap.top();
                 heap.pop();
-                const Item &item = (*all_tasks[current.batch_idx][current.task_idx].items)[current.item_idx];
+                const Item &item = (*batches[current.batch_index])[current.item_index];
                 write_record(out, item.key, item.payload);
                 ++written;
-
-                const size_t next_idx = current.item_idx + 1;
-                if (next_idx < all_tasks[current.batch_idx][current.task_idx].items->size())
-                    heap.push(HeapItem{current.batch_idx, current.task_idx, next_idx,
-                                       (*all_tasks[current.batch_idx][current.task_idx].items)[next_idx].key});
+                const size_t next_index = current.item_index + 1;
+                if (next_index < batches[current.batch_index]->size())
+                    heap.push(CurrentItem{current.batch_index, next_index, (*batches[current.batch_index])[next_index].key});
             }
 
-            spdlog::info("Flushed {} accumulated tasks ({} records) -> {}",
-                         all_tasks.size() * (all_tasks.empty() ? 0 : all_tasks[0].size()),
-                         written, path);
-            return path;
+            spdlog::info("Collector(inmem): wrote {} records -> {}", written, DATA_OUTPUT);
         }
-
-        void final_merge(const std::vector<std::string> &run_paths)
+        // write one segment while other segments are getting processed
+        void finalize_spill(std::vector<TaskResult> &results)
         {
+            std::vector<std::string> run_paths;
+            run_paths.reserve(results.size());
+            for (auto &res : results)
+                if (res.kind == ResultKind::RunPath && !res.path.empty())
+                    run_paths.push_back(std::move(res.path));
+
             if (run_paths.empty())
             {
-                spdlog::warn("final_merge: no runs to merge");
+                spdlog::warn("Collector(ooc): no runs produced");
                 std::ofstream(DATA_OUTPUT, std::ios::binary);
                 return;
             }
 
             std::ofstream out(DATA_OUTPUT, std::ios::binary);
             if (!out)
-                throw std::runtime_error("final_merge: cannot open output");
+                throw std::runtime_error("Collector(ooc): cannot open output");
 
             std::vector<std::unique_ptr<TempReader>> readers;
             readers.reserve(run_paths.size());
@@ -272,7 +314,7 @@ namespace omp_sort
                 if (!reader.eof)
                     heap.push(HeapNode{reader.key, current.run_index});
             }
-            spdlog::info("final_merge: wrote {} records -> {}", written, DATA_OUTPUT);
+            spdlog::info("Collector(ooc): wrote {} records -> {}", written, DATA_OUTPUT);
 
             for (const auto &path : run_paths)
             {
@@ -287,152 +329,27 @@ namespace omp_sort
             TimerClass worker_time;
             TimerClass collector_time;
 
-            SegmentReader reader(DATA_INPUT);
-            std::vector<std::string> all_run_paths;
-            std::vector<std::vector<Task>> accumulated_tasks; // Accumulate tasks until MEMORY_CAP
-            size_t segment_id = 0;
-
-            // Emitter + Worker phase
-            while (true)
+            bool saw_spill = false;
+            std::vector<Task> tasks;
             {
-                std::unique_ptr<Items> segment;
-                {
-                    TimerScope ts(emitter_time);
-                    segment = reader.read_next_segment();
-                    if (!segment)
-                        break;
-                }
-
-                bool is_final = reader.eof;
-
-                spdlog::info("Processing segment {} ({} items, accumulated_total={} bytes, final={})",
-                             segment_id, segment->size(), reader.accumulated_total,
-                             is_final ? "true" : "false");
-
-                std::vector<Task> tasks;
-                {
-                    TimerScope ts(worker_time);
-                    tasks = process_segment(std::move(segment), segment_id,
-                                            threads ? threads : 1);
-                }
-
-                // Accumulate sorted tasks
-                spdlog::info("[MEM-A] Before accumulating batch {}: accumulated_tasks.size()={}",
-                             segment_id, accumulated_tasks.size());
-                accumulated_tasks.push_back(std::move(tasks));
-                spdlog::info("[MEM-B] After accumulating batch {}: accumulated_tasks.size()={}, capacity={}",
-                             segment_id, accumulated_tasks.size(), accumulated_tasks.capacity());
-
-                // Check if we need to flush
-                bool should_flush = (reader.accumulated_total >= MEMORY_CAP) || is_final;
-
-                if (should_flush && !accumulated_tasks.empty())
-                {
-                    TimerScope ts(collector_time);
-
-                    if (all_run_paths.empty() && is_final && reader.accumulated_total < MEMORY_CAP)
-                    {
-                        // Special case: Never exceeded MEMORY_CAP, write directly to output
-                        spdlog::info("[MEM-C] In-memory path: writing {} batches directly to output", accumulated_tasks.size());
-                        spdlog::info("[MEM-C] accumulated_tasks capacity: {}, total batches: {}",
-                                     accumulated_tasks.capacity(), accumulated_tasks.size());
-
-                        // Count total memory in tasks
-                        size_t total_items = 0;
-                        size_t total_capacity = 0;
-                        for (size_t b = 0; b < accumulated_tasks.size(); ++b)
-                        {
-                            for (size_t t = 0; t < accumulated_tasks[b].size(); ++t)
-                            {
-                                if (accumulated_tasks[b][t].items)
-                                {
-                                    total_items += accumulated_tasks[b][t].items->size();
-                                    total_capacity += accumulated_tasks[b][t].items->capacity();
-                                }
-                            }
-                        }
-                        spdlog::info("[MEM-C] Total items: {}, total vector capacity: {}, overhead: {}%",
-                                     total_items, total_capacity,
-                                     (total_capacity > total_items) ? ((total_capacity - total_items) * 100 / total_items) : 0);
-
-                        spdlog::info("[MEM-D] Opening output file and building heap...");
-                        std::ofstream out(DATA_OUTPUT, std::ios::binary);
-                        if (!out)
-                            throw std::runtime_error("Cannot open output file");
-
-                        struct HeapItem
-                        {
-                            size_t batch_idx;
-                            size_t task_idx;
-                            size_t item_idx;
-                            uint64_t key;
-                        };
-                        struct Compare
-                        {
-                            bool operator()(const HeapItem &a, const HeapItem &b) const
-                            {
-                                return a.key > b.key;
-                            }
-                        };
-
-                        std::priority_queue<HeapItem, std::vector<HeapItem>, Compare> heap;
-                        spdlog::info("[MEM-E] Building heap from {} batches...", accumulated_tasks.size());
-                        for (size_t b = 0; b < accumulated_tasks.size(); ++b)
-                            for (size_t t = 0; t < accumulated_tasks[b].size(); ++t)
-                                if (accumulated_tasks[b][t].items && !accumulated_tasks[b][t].items->empty())
-                                    heap.push(HeapItem{b, t, 0, (*accumulated_tasks[b][t].items)[0].key});
-
-                        spdlog::info("[MEM-F] Heap built with {} entries, starting K-way merge write...", heap.size());
-                        size_t written = 0;
-                        size_t progress_interval = 10000000; // Log every 10M records
-                        while (!heap.empty())
-                        {
-                            auto current = heap.top();
-                            heap.pop();
-                            const Item &item = (*accumulated_tasks[current.batch_idx][current.task_idx].items)[current.item_idx];
-                            write_record(out, item.key, item.payload);
-                            ++written;
-
-                            if (written % progress_interval == 0)
-                            {
-                                spdlog::info("[MEM-PROGRESS] Written {} records", written);
-                            }
-
-                            const size_t next_idx = current.item_idx + 1;
-                            if (next_idx < accumulated_tasks[current.batch_idx][current.task_idx].items->size())
-                                heap.push(HeapItem{current.batch_idx, current.task_idx, next_idx,
-                                                   (*accumulated_tasks[current.batch_idx][current.task_idx].items)[next_idx].key});
-                        }
-                        spdlog::info("[MEM-G] K-way merge complete, wrote {} records", written);
-                        spdlog::info("[MEM-H] Flushing output stream...");
-                        out.flush();
-                        spdlog::info("[MEM-I] Closing output file...");
-                        out.close();
-                        spdlog::info("[MEM-J] Clearing accumulated_tasks...");
-                        spdlog::info("Collector(inmem): wrote {} records -> {}", written, DATA_OUTPUT);
-                        accumulated_tasks.clear();
-                        spdlog::info("[MEM-K] accumulated_tasks cleared, memory should be freed now");
-                    }
-                    else
-                    {
-                        // Flush accumulated tasks to temp file
-                        std::string run_path = flush_accumulated_tasks(accumulated_tasks);
-                        all_run_paths.push_back(run_path);
-                        accumulated_tasks.clear();
-                        reader.accumulated_total = 0; // Reset counter after flush
-                    }
-                }
-
-                ++segment_id;
+                TimerScope ts(emitter_time);
+                tasks = emit_tasks(threads ? threads : 1, saw_spill);
             }
+            spdlog::info("Emitter: produced {} tasks, spill={}", tasks.size(), saw_spill ? "true" : "false");
 
-            spdlog::info("Processed {} segments, produced {} run files", segment_id, all_run_paths.size());
-
-            // Final merge phase (if we created temp files)
-            if (!all_run_paths.empty())
+            std::vector<TaskResult> results;
+            {
+                TimerScope ts(worker_time);
+                results = process_tasks(std::move(tasks), threads ? threads : 1, saw_spill);
+            }
+            spdlog::info("Worker: processed {} tasks", results.size());
+            // if we surpassed MEMORY_CAP or Within MEMORY
             {
                 TimerScope ts(collector_time);
-                final_merge(all_run_paths);
+                if (saw_spill)
+                    finalize_spill(results);
+                else
+                    finalize_in_memory(results);
             }
 
             spdlog::info("[Timer] Emitter: {}", emitter_time.result());
@@ -450,6 +367,7 @@ namespace omp_sort
 int main(int argc, char **argv)
 {
     parse_cli_and_set(argc, argv);
+
     size_t threads = (WORKERS > 0) ? static_cast<size_t>(WORKERS) : 0;
 #if defined(_OPENMP)
     if (threads == 0)
@@ -461,6 +379,9 @@ int main(int argc, char **argv)
     spdlog::info("==> THREADS configured: {} <==", threads);
 
     TimerClass total_time;
+    spdlog::info("==> Calculating INPUT_SIZE <==");
+    const uint64_t stream_size = estimate_stream_size();
+    spdlog::info("==> INPUT SIZE: {} bytes (~{} GiB) <==", stream_size, stream_size / (1024.0 * 1024.0 * 1024.0));
 
     try
     {

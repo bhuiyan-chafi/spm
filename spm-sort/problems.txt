@@ -42,3 +42,11 @@
     CAUSE:
         - some vector were not freed after writing the intermediate slices
         - the biggest shock is STD::SORT() consumes N*log(N) space and in some case 2N. That's why in memory sort sky rocketed.
+        - but that issue was not that much of an issue, the final culprit was STD::VECTOR<> which consumes 24 bytes.
+        WHY:
+            - start -> 8 bytes
+            - end -> 8 bytes
+            - size -> 8 bytes
+            in our program we used a vector to store the payload.
+    Solution:
+        - used the CompactPayload class to solve that, now the overhead is just 8 bytes. We used a 8byte pointer just 

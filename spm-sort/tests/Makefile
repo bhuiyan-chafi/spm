@@ -7,7 +7,7 @@ INCLUDES += -I../include/ -I../include/spdlog/include
 LINKS ?=
 
 # Default target
-all: generator verifier_ff seq_sort farm ooc_omp
+all: generator verifier_ff seq_sort farm ooc_omp ooc_omp_farm
  
 # --- data_generator ---
 generator: LINKS += ../include/main.cpp ./generator.cpp
@@ -16,8 +16,8 @@ generator:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./generator
 
 # --- seq_sort ---
-seq_sort: LINKS += ../include/main.cpp ./seq_sort.cpp
-seq_sort: INCLUDES += -I../util/ -I../include/fastflow/
+seq_sort: LINKS += ../include/test/main_test.cpp ./seq_sort.cpp
+seq_sort: INCLUDES = -I../include/test/ -I../include/spdlog/include -I../util/ -I../include/fastflow/
 seq_sort:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./seq_sort
 
@@ -27,6 +27,13 @@ ooc_omp: INCLUDES += -I../util/ -I../include/fastflow/
 ooc_omp: LINKS += ../include/main.cpp ./ooc_omp.cpp
 ooc_omp:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp
+
+# --- ooc_omp_farm ---
+ooc_omp_farm: FLAGS += -fopenmp -pthread -ffast-math
+ooc_omp_farm: INCLUDES += -I../util/ -I../include/fastflow/
+ooc_omp_farm: LINKS += ../include/main.cpp ./ooc_omp_farm.cpp
+ooc_omp_farm:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp_farm
 
 # --- ff_pipe ---
 ff_pipe: FLAGS += -pthread
@@ -74,8 +81,10 @@ verifier_ff: LINKS += ../include/main.cpp ./verifier_ff.cpp
 verifier_ff:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./verifier_ff
 
+read_data: INCLUDES += -I../include/fastflow/ -I../util/
+read_data: LINKS += ../include/main.cpp
 read_data:
-	$(COMPILER) $(FLAGS) $(INCLUDES) ./read_data.cpp -o ./read_data
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) ./read_data.cpp -o ./read_data
 
 # --- clean ---
 .PHONY: clean

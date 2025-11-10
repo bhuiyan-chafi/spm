@@ -1,15 +1,15 @@
-#include "main.hpp"
+#include "main_test.hpp"
 
 /**
  * ------ Processors ------
  */
-void parse_cli_and_set(int argc, char **argv)
+void parse_cli(int argc, char **argv)
 {
 
-    if (argc < 1 || argc > 5)
+    if (argc != 2 && argc != 3 && argc != 5)
     {
         spdlog::error("Program accepts exactly 2/3/5 parameters, please read the instructions properly!");
-        throw std::runtime_error("");
+        throw std::runtime_error("Invalid number of arguments. Expected 1, 2, or 4 parameters.");
     }
     if (argc == 2)
     {
@@ -25,15 +25,21 @@ void parse_cli_and_set(int argc, char **argv)
             PAYLOAD_MAX = 256;
         if (records_in_string == "1M")
         {
-            RECORDS = 10'000'000ULL;
+            RECORDS = 1'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "5M")
         {
-            RECORDS = 50'000'000ULL;
+            RECORDS = 5'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "10M")
+        {
+
+            RECORDS = 10'000'000ULL;
+            DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
+        }
+        else if (records_in_string == "100M")
         {
 
             RECORDS = 100'000'000ULL;
@@ -41,26 +47,33 @@ void parse_cli_and_set(int argc, char **argv)
         }
         else
         {
-            spdlog::error("Records must be: 1M/5M/10M, you provided: {}", records_in_string);
+            spdlog::error("Records must be: 1M/5M/10M/100M, you provided: {}", records_in_string);
         }
     }
     else
     {
-        std::string records_in_string = argv[1];
-        std::string payload = argv[2];
+        std::string records_in_string = report.RECORDS = argv[1];
+        std::string payload = report.PAYLOAD_SIZE = argv[2];
         std::string workers = argv[3];
+        report.WORKERS = std::stoull(workers);
         std::string memory = argv[4];
         if (records_in_string == "1M")
         {
-            RECORDS = 10'000'000ULL;
+            RECORDS = 1'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "5M")
         {
-            RECORDS = 50'000'000ULL;
+            RECORDS = 5'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "10M")
+        {
+
+            RECORDS = 10'000'000ULL;
+            DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
+        }
+        else if (records_in_string == "100M")
         {
 
             RECORDS = 100'000'000ULL;
@@ -68,7 +81,7 @@ void parse_cli_and_set(int argc, char **argv)
         }
         else
         {
-            spdlog::error("Records must be: 1M/5M/10M, you provided: {}", records_in_string);
+            spdlog::error("Records must be: 1M/5M/10M/100M, you provided: {}", records_in_string);
         }
         MEMORY_CAP = std::stoull(memory) * IN_GB;
         if (!MEMORY_CAP)
@@ -79,16 +92,16 @@ void parse_cli_and_set(int argc, char **argv)
         PAYLOAD_MAX = std::stoull(payload);
         if (!PAYLOAD_MAX)
             PAYLOAD_MAX = 256;
-        spdlog::info("==> Calculating INPUT_SIZE <==");
+        // spdlog::info("==> Calculating INPUT_SIZE <==");
         INPUT_BYTES = estimate_stream_size();
         //  example: 1GB/4GB = 1GB -> (1 * 1GB) / 4(workers) = 256MiB buffer to read
         DISTRIBUTION_CAP = std::max(1UL, (INPUT_BYTES / MEMORY_CAP));
         DISTRIBUTION_CAP = (DISTRIBUTION_CAP * IN_GB) / WORKERS;
-        spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
+        // spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
     }
 }
 
-void write_record(std::ostream &stream_out, uint64_t key, const std::vector<uint8_t> &payload)
+void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload)
 {
     if (!stream_out)
     {
@@ -96,13 +109,13 @@ void write_record(std::ostream &stream_out, uint64_t key, const std::vector<uint
         throw std::runtime_error("write_record: stream error");
     }
     Record record{key, static_cast<uint32_t>(payload.size())};
-    // spdlog::info("writing_record: key={}, len={}", record.key, record.len);
+    // //spdlog::info("writing_record: key={}, len={}", record.key, record.len);
     stream_out.write(reinterpret_cast<const char *>(&record), sizeof(record));
     stream_out.write(reinterpret_cast<const char *>(payload.data()), payload.size());
 }
 
 bool read_record(std::istream &stream_in, uint64_t &key_out,
-                 std::vector<uint8_t> &payload_out)
+                 CompactPayload &payload_out)
 {
     Record record{};
     // this is one extra read, but this is just to test
@@ -124,7 +137,7 @@ void load_all_data_in_memory(std::vector<Item> &items, std::ifstream &in)
     while (true)
     {
         uint64_t key;
-        std::vector<uint8_t> payload;
+        CompactPayload payload;
         if (!read_record(in, key, payload))
         {
             break; // EOF
@@ -151,19 +164,19 @@ uint64_t estimate_stream_size()
 {
     namespace fs = std::filesystem;
     std::error_code error_code;
-    spdlog::info("DATA_INPUT: {} to calculate size", DATA_INPUT);
+    // spdlog::info("DATA_INPUT: {} to calculate size", DATA_INPUT);
     auto stream_size = fs::file_size(DATA_INPUT, error_code);
     if (!error_code)
     {
         stream_size = static_cast<uint64_t>(stream_size);
         if (stream_size < IN_GB)
         {
-            spdlog::info("-> INPUT DATA SIZE: {} MiB", stream_size / (double)(1024.0 * 1024.0));
+            // spdlog::info("-> INPUT DATA SIZE: {} MiB", stream_size / (double)(1024.0 * 1024.0));
             return stream_size;
         }
         else
         {
-            spdlog::info("-> INPUT DATA SIZE: {} GiB", stream_size / (double)(1024.0 * 1024.0 * 1024.0));
+            // spdlog::info("-> INPUT DATA SIZE: {} GiB", stream_size / (double)(1024.0 * 1024.0 * 1024.0));
             return stream_size;
         }
     }
@@ -172,9 +185,9 @@ uint64_t estimate_stream_size()
 }
 
 /**
- * sorting in Memory Function: sort_in_memory(), and the stream is for sure < MEMORY_CAP
+ * sorting in Memory Function: sort_in_memory_test(), and the stream is for sure < MEMORY_CAP
  */
-void sort_in_memory()
+void sort_in_memory_test()
 {
     TimerClass sorting_time;
     TimerClass writing_time;
@@ -189,21 +202,22 @@ void sort_in_memory()
     {
         TimerScope st(sorting_time);
         load_all_data_in_memory(items, in);
-        spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
+        // spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
         std::sort(items.begin(), items.end(),
                   [](const Item &a, const Item &b)
                   { return a.key < b.key; });
     }
-    spdlog::info("->[Timer:Sort] IN_MEMORY_SORT: {}", sorting_time.result());
+    report.WORKING_TIME = sorting_time.result();
+    // spdlog::info("->[Timer:Sort] IN_MEMORY_SORT: {}", sorting_time.result());
     {
         TimerScope wt(writing_time);
-        spdlog::info("-> Writing results");
+        // spdlog::info("-> Writing results");
         for (const auto &it : items)
         {
             write_record(out, it.key, it.payload);
         }
     }
-    spdlog::info("->[Timer:Write] IN_MEMORY_SORT: {}", writing_time.result());
+    // //spdlog::info("->[Timer:Write] IN_MEMORY_SORT: {}", writing_time.result());
     in.close();
     out.close();
 }
@@ -211,7 +225,7 @@ void sort_in_memory()
 /**
  * sort in slices, out of memory capacity(MEMORY_CAP)
  */
-void sort_out_of_core()
+void sort_out_of_core_test()
 {
     TimerClass slice_sort_write_time;
     TimerClass merge_write_time;
@@ -234,7 +248,7 @@ void sort_out_of_core()
     {
         TimerScope sswt(slice_sort_write_time);
         uint64_t key;
-        std::vector<uint8_t> payload;
+        CompactPayload payload;
         if (!read_record(in, key, payload))
         {
             if (!temp_items.empty())
@@ -266,7 +280,8 @@ void sort_out_of_core()
         temp_items.push_back(Item{key, std::move(payload)});
         current_stream_size_inBytes += current_item_size;
     }
-    spdlog::info("->[Timer:Slice->Sort->Write] MEMORY_OOB: {}", slice_sort_write_time.result());
+    report.WORKING_TIME = slice_sort_write_time.result();
+    // //spdlog::info("->[Timer:Slice->Sort->Write] MEMORY_OOB: {}", slice_sort_write_time.result());
     /**
      *  ------------------ Perform k-way merge -------------------
      *  ------------- accumulate slices and produce one file --------------
@@ -296,7 +311,7 @@ void sort_out_of_core()
             }
         }
     }
-    spdlog::info("->[Timer:Merge->Write] MEMORY_OOB: {}", merge_write_time.result());
+    // //spdlog::info("->[Timer:Merge->Write] MEMORY_OOB: {}", merge_write_time.result());
     for (const auto &temp_record_path : temp_record_paths)
     {
         std::remove(temp_record_path.c_str());

@@ -25,15 +25,21 @@ void parse_cli_and_set(int argc, char **argv)
             PAYLOAD_MAX = 256;
         if (records_in_string == "1M")
         {
-            RECORDS = 10'000'000ULL;
+            RECORDS = 1'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "5M")
         {
-            RECORDS = 50'000'000ULL;
+            RECORDS = 5'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "10M")
+        {
+
+            RECORDS = 10'000'000ULL;
+            DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
+        }
+        else if (records_in_string == "100M")
         {
 
             RECORDS = 100'000'000ULL;
@@ -41,7 +47,7 @@ void parse_cli_and_set(int argc, char **argv)
         }
         else
         {
-            spdlog::error("Records must be: 1M/5M/10M, you provided: {}", records_in_string);
+            spdlog::error("Records must be: 1M/5M/10M/100M, you provided: {}", records_in_string);
         }
     }
     else
@@ -52,15 +58,21 @@ void parse_cli_and_set(int argc, char **argv)
         std::string memory = argv[4];
         if (records_in_string == "1M")
         {
-            RECORDS = 10'000'000ULL;
+            RECORDS = 1'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "5M")
         {
-            RECORDS = 50'000'000ULL;
+            RECORDS = 5'000'000ULL;
             DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
         }
         else if (records_in_string == "10M")
+        {
+
+            RECORDS = 10'000'000ULL;
+            DATA_INPUT = "../data/rec_" + records_in_string + "_" + payload + ".bin";
+        }
+        else if (records_in_string == "100M")
         {
 
             RECORDS = 100'000'000ULL;
@@ -68,7 +80,7 @@ void parse_cli_and_set(int argc, char **argv)
         }
         else
         {
-            spdlog::error("Records must be: 1M/5M/10M, you provided: {}", records_in_string);
+            spdlog::error("Records must be: 1M/5M/10M/100M, you provided: {}", records_in_string);
         }
         MEMORY_CAP = std::stoull(memory) * IN_GB;
         if (!MEMORY_CAP)
@@ -86,19 +98,6 @@ void parse_cli_and_set(int argc, char **argv)
         DISTRIBUTION_CAP = (DISTRIBUTION_CAP * IN_GB) / WORKERS;
         spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
     }
-}
-
-void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload)
-{
-    if (!stream_out)
-    {
-        spdlog::error("Stream error while writing record: key={}", key);
-        throw std::runtime_error("write_record: stream error");
-    }
-    Record record{key, static_cast<uint32_t>(payload.size())};
-    // spdlog::info("writing_record: key={}, len={}", record.key, record.len);
-    stream_out.write(reinterpret_cast<const char *>(&record), sizeof(record));
-    stream_out.write(reinterpret_cast<const char *>(payload.data()), payload.size());
 }
 
 bool read_record(std::istream &stream_in, uint64_t &key_out,
@@ -119,7 +118,20 @@ bool read_record(std::istream &stream_in, uint64_t &key_out,
     return static_cast<bool>(stream_in); // true if payload read succeeded
 }
 
-void load_all_data_in_memory(std::vector<Item> &items, std::ifstream &in)
+void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload)
+{
+    if (!stream_out)
+    {
+        spdlog::error("Stream error while writing record: key={}", key);
+        throw std::runtime_error("write_record: stream error");
+    }
+    Record record{key, static_cast<uint32_t>(payload.size())};
+    // spdlog::info("writing_record: key={}, len={}", record.key, record.len);
+    stream_out.write(reinterpret_cast<const char *>(&record), sizeof(record));
+    stream_out.write(reinterpret_cast<const char *>(payload.data()), payload.size());
+}
+
+void load_data_from_memory(std::vector<Item> &items, std::ifstream &in)
 {
     while (true)
     {
@@ -188,7 +200,7 @@ void sort_in_memory()
     std::vector<Item> items;
     {
         TimerScope st(sorting_time);
-        load_all_data_in_memory(items, in);
+        load_data_from_memory(items, in);
         spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
         std::sort(items.begin(), items.end(),
                   [](const Item &a, const Item &b)

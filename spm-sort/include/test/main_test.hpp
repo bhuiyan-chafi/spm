@@ -2,7 +2,7 @@
 #include "ff/ff.hpp"
 #include "timer.hpp"
 #include "spdlog/spdlog.h"
-#include "timer.hpp"
+#include "compact_payload_test.hpp"
 
 #include <mutex>
 #include <queue>
@@ -38,7 +38,16 @@ inline uint64_t PAYLOAD_MAX{0};
 inline uint64_t RECORDS{0};
 inline uint64_t INPUT_BYTES{0};
 inline uint64_t DISTRIBUTION_CAP{0};
-
+struct Report
+{
+    std::string METHOD;
+    std::string RECORDS;
+    std::string PAYLOAD_SIZE;
+    uint64_t WORKERS;
+    std::string WORKING_TIME;
+    std::string TOTAL_TIME;
+};
+inline Report report;
 inline unsigned long get_tid()
 {
     return static_cast<unsigned long>(::syscall(SYS_gettid));
@@ -81,19 +90,19 @@ struct Record
 struct Item
 {
     uint64_t key;
-    std::vector<uint8_t> payload; // payload bytes
+    CompactPayload payload; // payload bytes
 };
 /**
  *  Reading just one record: [u64 key][u32 len][len bytes payload]
  */
 bool read_record(std::istream &stream_in, uint64_t &key_out,
-                 std::vector<uint8_t> &payload_out);
+                 CompactPayload &payload_out);
 struct TempReader
 {
     std::ifstream in;
     bool eof = false;
     uint64_t key = 0;
-    std::vector<uint8_t> payload;
+    CompactPayload payload;
 
     explicit TempReader(const std::string &path) : in(path, std::ios::binary)
     {
@@ -108,7 +117,7 @@ struct TempReader
         {
             eof = true;
             // Drop any reserved capacity to avoid lingering large buffers
-            std::vector<uint8_t>().swap(payload);
+            payload = CompactPayload();
         }
     }
 };
@@ -124,11 +133,11 @@ struct HeapNode
 /**
  * -------------- CLI and other processors --------------
  */
-void parse_cli_and_set(int argc, char **argv);
+void parse_cli(int argc, char **argv);
 /**
  *  Writing just one record: [u64 key][u32 len][len bytes payload]
  */
-void write_record(std::ostream &stream_out, uint64_t key, const std::vector<uint8_t> &payload);
+void write_record(std::ostream &stream_out, uint64_t key, const CompactPayload &payload);
 
 // load data in memory
 void load_all_data_in_memory(std::vector<Item> &items, std::ifstream &in);
@@ -143,6 +152,6 @@ void write_temp_slice(const std::string &temp_slice_out_path, const std::vector<
 uint64_t estimate_stream_size();
 
 // sequential sort : in-memory
-void sort_in_memory();
+void sort_in_memory_test();
 // sequential sort: out of memory bound
-void sort_out_of_core();
+void sort_out_of_core_test();

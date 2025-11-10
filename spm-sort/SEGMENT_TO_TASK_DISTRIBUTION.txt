@@ -1,0 +1,301 @@
+================================================================================
+SEGMENT TO TASK DISTRIBUTION - DETAILED ANALYSIS
+================================================================================
+
+CONTEXT:
+--------
+We have ONE segment = DISTRIBUTION_CAP (256 MB) containing many Items.
+We need to split this segment into multiple tasks for parallel sorting.
+
+================================================================================
+STEP-BY-STEP BREAKDOWN
+================================================================================
+
+INPUT:
+------
+- segment: std::unique_ptr<Items> (a vector of Item objects)
+- segment->size(): Let's say 8,388,608 items (example for 256 MB)
+- threads: 4 workers
+
+STEP 1: Calculate Ranges
+-------------------------
+Function call: slice_ranges(segment->size(), threads)
+              slice_ranges(8388608, 4)
+
+This divides the segment into 4 equal parts:
+
+Range calculation formula:
+  L = (i × n) / parts
+  R = ((i + 1) × n) / parts
+
+Results:
+┌────────┬──────────┬──────────┬───────────────┐
+│ Task i │ L (start)│ R (end)  │ Items count   │
+├────────┼──────────┼──────────┼───────────────┤
+│   0    │    0     │ 2097152  │ 2,097,152     │
+│   1    │ 2097152  │ 4194304  │ 2,097,152     │
+│   2    │ 4194304  │ 6291456  │ 2,097,152     │
+│   3    │ 6291456  │ 8388608  │ 2,097,152     │
+└────────┴──────────┴──────────┴───────────────┘
+
+Each task gets 1/4 of the segment = 64 MB
+
+STEP 2: Create Tasks (Loop Through Ranges)
+-------------------------------------------
+
+The code:
+```cpp
+for (size_t i = 0; i < ranges.size(); ++i)
+{
+    auto [L, R] = ranges[i];                    // Get range boundaries
+    auto slice = std::make_unique<Items>();     // Create NEW vector
+    slice->reserve(R - L);                      // Pre-allocate space
+    for (size_t j = L; j < R; ++j)
+        slice->push_back(std::move((*segment)[j])); // MOVE items
+    tasks.push_back(Task{std::move(slice), false, segment_id, i});
+}
+```
+
+ITERATION 0 (First Task):
+--------------------------
+i = 0, L = 0, R = 2097152
+
+1. Create slice: std::make_unique<Items>()
+   - Allocates a NEW empty vector
+   - Memory: ~24 bytes (vector overhead)
+
+2. Reserve space: slice->reserve(2097152)
+   - Allocates space for 2,097,152 Item objects
+   - Memory: 2,097,152 × 16 bytes = 33,554,432 bytes (~32 MB)
+   - Note: sizeof(Item) = 8 (key) + 8 (CompactPayload pointer) = 16 bytes
+
+3. Move Items: for (j = 0; j < 2097152; j++)
+   - slice->push_back(std::move((*segment)[j]))
+   
+   What happens here:
+   ┌──────────────────────────────────────────────────────────────┐
+   │ MOVE operation (NOT copy):                                   │
+   │                                                              │
+   │ Before move:                                                 │
+   │   (*segment)[0] = Item{key=123, payload=CompactPayload}     │
+   │                        ↓                                     │
+   │                   CompactPayload.data_ → [heap memory]      │
+   │                                                              │
+   │ After move:                                                  │
+   │   (*segment)[0] = Item{key=123, payload=CompactPayload}     │
+   │                                     ↓                        │
+   │                            data_ = nullptr (moved out!)     │
+   │                                                              │
+   │   (*slice)[0] = Item{key=123, payload=CompactPayload}       │
+   │                        ↓                                     │
+   │                   CompactPayload.data_ → [heap memory]      │
+   │                   (SAME pointer, NOT copied!)               │
+   └──────────────────────────────────────────────────────────────┘
+
+   Memory impact:
+   - NO new payload data allocated
+   - Only the Item structure (16 bytes) is copied to slice
+   - The CompactPayload pointer (8 bytes) is transferred
+   - Original segment[j].payload.data_ becomes nullptr
+
+4. Create Task: Task{std::move(slice), false, segment_id, 0}
+   - Task contains unique_ptr to slice
+   - Ownership transferred to tasks vector
+
+ITERATION 1, 2, 3 (Remaining Tasks):
+-------------------------------------
+Same process repeats for remaining ranges:
+- Task 1: Items [2097152 to 4194304)
+- Task 2: Items [4194304 to 6291456)
+- Task 3: Items [6291456 to 8388608)
+
+================================================================================
+MEMORY LAYOUT AFTER DISTRIBUTION
+================================================================================
+
+BEFORE (Original Segment):
+---------------------------
+segment vector: [Item₀, Item₁, Item₂, ..., Item₈₃₈₈₆₀₇]
+                   ↓      ↓      ↓            ↓
+              [payload] [payload] ...    [payload]
+                   ↓
+            CompactPayload.data_ → [heap: size + data bytes]
+
+AFTER (Tasks Created):
+-----------------------
+segment vector: [Item₀(empty), Item₁(empty), ..., Item₈₃₈₈₆₀₇(empty)]
+                   ↓              ↓                      ↓
+              nullptr         nullptr              nullptr
+                                    ↑
+                                    All payloads moved out!
+
+tasks[0].items: [Item₀, Item₁, ..., Item₂₀₉₇₁₅₁]
+                   ↓      ↓             ↓
+              [payload] [payload]  [payload]  ← MOVED FROM segment
+
+tasks[1].items: [Item₂₀₉₇₁₅₂, ..., Item₄₁₉₄₃₀₃]
+                   ↓                    ↓
+              [payload]            [payload]  ← MOVED FROM segment
+
+tasks[2].items: [Item₄₁₉₄₃₀₄, ..., Item₆₂₉₁₄₅₅]
+tasks[3].items: [Item₆₂₉₁₄₅₆, ..., Item₈₃₈₈₆₀₇]
+
+KEY INSIGHT:
+------------
+The heap-allocated payload data (the actual bytes) are NOT copied!
+Only the pointers are transferred via std::move()!
+
+================================================================================
+MEMORY ACCOUNTING
+================================================================================
+
+For ONE segment with 8,388,608 items:
+
+BEFORE distribution (original segment):
+----------------------------------------
+Vector overhead:          24 bytes
+Item structures:          8,388,608 × 16 bytes = 134,217,728 bytes (~128 MB)
+Payload data (heap):      8,388,608 × (4 + 32) bytes = 301,989,888 bytes (~288 MB)
+                          (4 bytes for size, 32 bytes average payload)
+────────────────────────────────────────────────────────────────────────────
+TOTAL:                    ~416 MB per segment
+
+AFTER distribution (4 tasks):
+------------------------------
+Original segment (empty):
+  Vector overhead:        24 bytes
+  Item structures:        8,388,608 × 16 bytes = 134,217,728 bytes
+  Payload data:           NONE (all moved out, data_ = nullptr for all)
+  ────────────────────────────────────────────────────────────
+  Subtotal:               ~128 MB (but payloads are null!)
+
+Task 0 slice:
+  Vector overhead:        24 bytes
+  Item structures:        2,097,152 × 16 bytes = 33,554,432 bytes (~32 MB)
+  Payload data (heap):    2,097,152 × 36 bytes = 75,497,472 bytes (~72 MB)
+  ────────────────────────────────────────────────────────────
+  Subtotal:               ~104 MB
+
+Task 1, 2, 3 slices:      ~104 MB each
+
+Total for 4 tasks:        4 × 104 MB = 416 MB
+
+────────────────────────────────────────────────────────────────────────────
+TOTAL MEMORY:             ~544 MB (128 MB empty segment + 416 MB in tasks)
+
+Wait, this looks like we're using MORE memory! But...
+
+CRITICAL OPTIMIZATION:
+----------------------
+After the loop, the original segment is destroyed:
+
+```cpp
+// segment destroyed here, memory freed because tasks have the items now
+```
+
+When segment goes out of scope:
+1. segment's destructor is called
+2. All Item objects in segment are destroyed
+3. Each Item's CompactPayload destructor is called
+4. Since data_ == nullptr (moved out), NO heap memory is freed
+5. Only the vector's Item structures (~128 MB) are freed
+
+ACTUAL MEMORY AFTER segment destruction:
+-----------------------------------------
+4 task slices:            4 × 104 MB = 416 MB
+Empty segment (freed):    0 MB
+────────────────────────────────────────────────────────────
+TOTAL:                    ~416 MB (SAME as before!)
+
+NO EXTRA MEMORY USED! Just reorganized!
+
+================================================================================
+MEMORY EFFICIENCY PROOF
+================================================================================
+
+Let's trace ONE item through the process:
+
+Item example: key=42, payload=32 bytes
+
+1. IN SEGMENT (after reading from file):
+   ┌────────────────────────────────────────┐
+   │ segment[100]:                          │
+   │   Item.key = 42          (8 bytes)     │
+   │   Item.payload.data_ = 0x7f1a2b3c4d5e  │ (8 bytes, points to heap)
+   ├────────────────────────────────────────┤
+   │ Heap at 0x7f1a2b3c4d5e:                │
+   │   [4 bytes: size=32]                   │
+   │   [32 bytes: actual data]              │
+   └────────────────────────────────────────┘
+   Total for this item: 16 + 36 = 52 bytes
+
+2. MOVED TO TASK (std::move operation):
+   ┌────────────────────────────────────────┐
+   │ tasks[0].items[100]:                   │
+   │   Item.key = 42          (8 bytes)     │
+   │   Item.payload.data_ = 0x7f1a2b3c4d5e  │ (8 bytes, SAME pointer!)
+   ├────────────────────────────────────────┤
+   │ Heap at 0x7f1a2b3c4d5e:                │
+   │   [4 bytes: size=32]                   │
+   │   [32 bytes: actual data]              │
+   │   (SAME heap memory, NOT copied!)      │
+   └────────────────────────────────────────┘
+
+   ┌────────────────────────────────────────┐
+   │ segment[100] (after move):             │
+   │   Item.key = 42          (8 bytes)     │
+   │   Item.payload.data_ = nullptr         │ (8 bytes, cleared!)
+   └────────────────────────────────────────┘
+
+   Memory change:
+   - Before: 52 bytes (segment)
+   - After:  16 bytes (segment, empty) + 52 bytes (task) = 68 bytes
+   - Extra:  16 bytes (temporary, freed when segment destroyed)
+
+3. AFTER SEGMENT DESTROYED:
+   Only tasks[0].items[100] remains: 52 bytes (SAME as original!)
+
+================================================================================
+WHY THIS APPROACH?
+================================================================================
+
+Q: Why not just sort the segment in place?
+A: Because we need PARALLEL sorting!
+
+Benefits of splitting into tasks:
+1. **Parallel execution**: Each task can be sorted by a different thread
+2. **Cache locality**: Each worker operates on contiguous memory
+3. **Load balancing**: Each worker gets equal amount of work
+4. **Move semantics**: Zero-copy transfer of Items between vectors
+
+The split + move approach allows:
+- 4 workers sorting simultaneously (4× speedup potential)
+- Each worker sorts ~2M items instead of 8M
+- Memory stays constant (just reorganized)
+- After sorting, tasks are merged back together
+
+================================================================================
+SUMMARY
+================================================================================
+
+1. ONE segment (DISTRIBUTION_CAP = 256 MB) contains ~8.4M Items
+2. Split into 4 tasks using slice_ranges() (one per worker)
+3. Each task gets a NEW vector with 1/4 of the Items
+4. Items are MOVED (not copied) using std::move()
+   - Only the 16-byte Item structure is copied to the new vector
+   - The CompactPayload pointer (8 bytes) is transferred
+   - Heap memory (payload data) is NOT duplicated
+5. Original segment is destroyed, freeing ~128 MB of Item structures
+6. Net memory usage: SAME (just reorganized for parallel processing)
+7. Each worker sorts its task independently (parallel speedup)
+
+Memory per item journey:
+- Reading from file:     52 bytes (16 Item + 36 heap)
+- In segment:           52 bytes
+- After move to task:   52 bytes (same heap memory!)
+- After segment freed:  52 bytes
+
+NO DUPLICATION OF PAYLOAD DATA!
+Only vector structures are temporarily doubled (~128 MB), then freed.
+
+================================================================================

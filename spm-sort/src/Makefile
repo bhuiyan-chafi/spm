@@ -2,7 +2,7 @@
 COMPILER = g++
 COMPILE_MPI = mpicxx
 FLAGS += -std=c++20 -O3 -Wall
-INCLUDES += -I../include/ -I../include/spdlog/include
+INCLUDES += -I../include/ -I../include/test/ -I../include/spdlog/include
 
 LINKS ?=
 
@@ -16,8 +16,8 @@ generator:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./generator
 
 # --- sequential sort ---
-sequential: LINKS += ../include/main.cpp ./sequential.cpp
-sequential: INCLUDES += -I../util/ -I../include/fastflow/
+sequential: LINKS += ../include/test/main_test.cpp ./sequential.cpp
+sequential: INCLUDES = -I../include/test/ -I../include/spdlog/include -I../util/ -I../include/fastflow/
 sequential:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./sequential
 
