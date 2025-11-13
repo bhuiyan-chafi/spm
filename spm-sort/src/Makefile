@@ -21,6 +21,13 @@ sequential: INCLUDES = -I../include/test/ -I../include/spdlog/include -I../util/
 sequential:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./sequential
 
+# --- openmpv1 ---
+openmpv1: FLAGS += -fopenmp -pthread -ffast-math
+openmpv1: INCLUDES += -I../util/ -I../include/fastflow/
+openmpv1: LINKS += ../include/main.cpp ./openmpv1.cpp
+openmpv1:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./openmpv1
+
 # --- openmp ---
 openmp: FLAGS += -fopenmp -pthread -ffast-math
 openmp: INCLUDES += -I../util/ -I../include/fastflow/

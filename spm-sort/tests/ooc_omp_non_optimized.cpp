@@ -1,4 +1,29 @@
+/**
+ * we introduced additional stage as intermediate writers
+ * threadpools for writers
+ * writing distribution caps instead of segment = MEMORY_CAP
+ * too many writes of small chunks but saved collector bottleneck
+ * memory aggressive operation using malloc
+ */
 #include "main.hpp"
+#include <algorithm>
+#include <atomic>
+#include <condition_variable>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <malloc.h>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <omp.h>
+#include <optional>
+#include <queue>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace farm
 {
@@ -296,8 +321,8 @@ namespace farm
             auto segment = reader.read_next_segment();
             if (!segment)
                 break;
-            // makes each slice = size of l1_data_cache of executing machine
-            auto ranges = slice_ranges(segment->size(), DEGREE);
+
+            auto ranges = slice_ranges(segment->size(), num_workers * 2);
 
             for (size_t i = 0; i < ranges.size(); ++i)
             {
@@ -426,7 +451,9 @@ namespace farm
         // spdlog::info("[Writer-{} TID:{}] Finished: {} segments written, total time {}",
         //              writer_id, tid, segments_written,
         //              local_timer.result());
-    } // ==================== COORDINATOR (formerly Collector) ====================
+    }
+
+    // ==================== COORDINATOR (formerly Collector) ====================
 
     void coordinator_stage(SafeQueue<SortedTask> &sorted_queue,
                            SafeQueue<WriteTask> &write_queue,
@@ -447,7 +474,7 @@ namespace farm
 
         std::map<size_t, SegmentInfo> segments;
         size_t poison_count = 0;
-        const size_t slices_per_segment = DEGREE; // as many slices we did to one segment=DISTRIBUTION_CAP
+        const size_t slices_per_segment = num_workers * 2; // 8 slices for 4 workers
         uint64_t accumulated_bytes = 0;
 
         // if (write_segments)
@@ -581,7 +608,7 @@ namespace farm
 
     // ==================== MAIN PIPELINE ====================
 
-    void run_farm(size_t num_workers, size_t num_writers = WORKERS / 2)
+    void run_farm(size_t num_workers, size_t num_writers = 2)
     {
         // Determine if we need out-of-core processing
         // write_segments = true if INPUT_BYTES > MEMORY_CAP
@@ -604,14 +631,9 @@ namespace farm
         //     spdlog::info("==> Will accumulate all data and write once to output <==");
         // }
 
-        /**
-         * The question is if one worker is processing size of data = it's l1 cache and we created workers^workers amount of
-         * tasks then what should be the size of the queue? How long should the emitter keep reading.
-         * Let's do a math:
-         *
-         */
-        SafeQueue<Task> task_queue(DISTRIBUTION_CAP * WORKERS);
-        SafeQueue<SortedTask> sorted_queue(DISTRIBUTION_CAP * WORKERS);
+        // Bounded queues to enforce memory cap
+        SafeQueue<Task> task_queue(num_workers * 4);
+        SafeQueue<SortedTask> sorted_queue(num_workers * 4);
 
         // Write queue: Keep it minimal to avoid buffering segments
         // num_writers (2) means max 2 segments buffered in write queue

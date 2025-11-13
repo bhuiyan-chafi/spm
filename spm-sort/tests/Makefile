@@ -21,19 +21,12 @@ seq_sort: INCLUDES = -I../include/test/ -I../include/spdlog/include -I../util/ -
 seq_sort:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./seq_sort
 
-# --- ooc_omp ---
-ooc_omp: FLAGS += -fopenmp -pthread -ffast-math
-ooc_omp: INCLUDES += -I../util/ -I../include/fastflow/
-ooc_omp: LINKS += ../include/main.cpp ./ooc_omp.cpp
-ooc_omp:
-	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp
-
-# --- ooc_omp_farm ---
-ooc_omp_farm: FLAGS += -fopenmp -pthread -ffast-math
-ooc_omp_farm: INCLUDES += -I../util/ -I../include/fastflow/
-ooc_omp_farm: LINKS += ../include/main.cpp ./ooc_omp_farm.cpp
-ooc_omp_farm:
-	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp_farm
+# --- ooc_omp_final ---
+ooc_omp_final: FLAGS += -fopenmp -pthread -ffast-math
+ooc_omp_final: INCLUDES += -I../util/ -I../include/fastflow/
+ooc_omp_final: LINKS += ../include/main.cpp ./ooc_omp_final.cpp
+ooc_omp_final:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ooc_omp_final
 
 # --- ff_pipe ---
 ff_pipe: FLAGS += -pthread
@@ -45,7 +38,7 @@ ff_pipe:
 # --- ff_farm ---
 
 ff_farm: FLAGS += -pthread
-ff_farm: INCLUDES += -I../include/fastflow/
+ff_farm: INCLUDES += -I../util/ -I../include/fastflow/
 ff_farm: LINKS += ../include/main.cpp ./ff_farm.cpp
 ff_farm:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ff_farm

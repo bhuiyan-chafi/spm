@@ -52,9 +52,10 @@ void parse_cli_and_set(int argc, char **argv)
     }
     else
     {
-        std::string records_in_string = argv[1];
-        std::string payload = argv[2];
+        std::string records_in_string = report.RECORDS = argv[1];
+        std::string payload = report.PAYLOAD_SIZE = argv[2];
         std::string workers = argv[3];
+        report.WORKERS = std::stoull(workers);
         std::string memory = argv[4];
         if (records_in_string == "1M")
         {
@@ -91,15 +92,44 @@ void parse_cli_and_set(int argc, char **argv)
         PAYLOAD_MAX = std::stoull(payload);
         if (!PAYLOAD_MAX)
             PAYLOAD_MAX = 256;
-        spdlog::info("==> Calculating INPUT_SIZE <==");
+        // spdlog::info("==> Calculating INPUT_SIZE <==");
         INPUT_BYTES = estimate_stream_size();
-        //  example: 1GB/4GB = 1GB -> (1 * 1GB) / 4(workers) = 256MiB buffer to read
-        DISTRIBUTION_CAP = std::max(1UL, (INPUT_BYTES / MEMORY_CAP));
-        DISTRIBUTION_CAP = (DISTRIBUTION_CAP * IN_GB) / WORKERS;
-        spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
+        if (INPUT_BYTES < MEMORY_CAP)
+        {
+            bool in_memory_decision = in_memory_feasibility(INPUT_BYTES, MEMORY_CAP);
+            if (in_memory_decision)
+            {
+                // spdlog::info("Input size is still lower than MEMORY_CAP considering the overhead.");
+            }
+            else
+            {
+                // spdlog::warn("Input size exceeds MEMORY_CAP considering overhead, you should not process it within memory.");
+            }
+        }
+        DEGREE = static_cast<uint64_t>(pow(static_cast<double>(WORKERS), static_cast<double>(WORKERS)));
+        decide_distribution_cap();
+        // spdlog::info("Choosen Degree:{}", DEGREE);
+        // spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
     }
 }
 
+bool in_memory_feasibility(double input_bytes, double memory_cap)
+{
+    const double overhead = 0.5;
+    double required_memory = input_bytes + (input_bytes * overhead);
+    // spdlog::info("Required MEMORY_CAP:{}B and Provided:{}B", required_memory, memory_cap);
+    if (required_memory > memory_cap)
+        return false;
+    return true;
+}
+void decide_distribution_cap()
+{
+    uint64_t l1_cache = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+    uint64_t cap = l1_cache * DEGREE;
+    //  64KiB * 4^4 = 4096KiB
+    DISTRIBUTION_CAP = std::max(32UL, cap);
+    // spdlog::info("Decided DISTRIBUTION_CAP: {}B based on your machine's L1_CACHE: {}B", DISTRIBUTION_CAP, l1_cache);
+}
 bool read_record(std::istream &stream_in, uint64_t &key_out,
                  CompactPayload &payload_out)
 {
@@ -163,19 +193,19 @@ uint64_t estimate_stream_size()
 {
     namespace fs = std::filesystem;
     std::error_code error_code;
-    spdlog::info("DATA_INPUT: {} to calculate size", DATA_INPUT);
+    // spdlog::info("DATA_INPUT: {} to calculate size", DATA_INPUT);
     auto stream_size = fs::file_size(DATA_INPUT, error_code);
     if (!error_code)
     {
         stream_size = static_cast<uint64_t>(stream_size);
         if (stream_size < IN_GB)
         {
-            spdlog::info("-> INPUT DATA SIZE: {} MiB", stream_size / (double)(1024.0 * 1024.0));
+            // spdlog::info("-> INPUT DATA SIZE: {} MiB", stream_size / (double)(1024.0 * 1024.0));
             return stream_size;
         }
         else
         {
-            spdlog::info("-> INPUT DATA SIZE: {} GiB", stream_size / (double)(1024.0 * 1024.0 * 1024.0));
+            // spdlog::info("-> INPUT DATA SIZE: {} GiB", stream_size / (double)(1024.0 * 1024.0 * 1024.0));
             return stream_size;
         }
     }
@@ -201,12 +231,12 @@ void sort_in_memory()
     {
         TimerScope st(sorting_time);
         load_data_from_memory(items, in);
-        spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
+        // spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
         std::sort(items.begin(), items.end(),
                   [](const Item &a, const Item &b)
                   { return a.key < b.key; });
     }
-    spdlog::info("->[Timer:Sort] IN_MEMORY_SORT: {}", sorting_time.result());
+    // spdlog::info("->[Timer:Sort] IN_MEMORY_SORT: {}", sorting_time.result());
     {
         TimerScope wt(writing_time);
         spdlog::info("-> Writing results");
@@ -215,7 +245,7 @@ void sort_in_memory()
             write_record(out, it.key, it.payload);
         }
     }
-    spdlog::info("->[Timer:Write] IN_MEMORY_SORT: {}", writing_time.result());
+    // spdlog::info("->[Timer:Write] IN_MEMORY_SORT: {}", writing_time.result());
     in.close();
     out.close();
 }
@@ -278,7 +308,7 @@ void sort_out_of_core()
         temp_items.push_back(Item{key, std::move(payload)});
         current_stream_size_inBytes += current_item_size;
     }
-    spdlog::info("->[Timer:Slice->Sort->Write] MEMORY_OOB: {}", slice_sort_write_time.result());
+    // spdlog::info("->[Timer:Slice->Sort->Write] MEMORY_OOB: {}", slice_sort_write_time.result());
     /**
      *  ------------------ Perform k-way merge -------------------
      *  ------------- accumulate slices and produce one file --------------
@@ -308,7 +338,7 @@ void sort_out_of_core()
             }
         }
     }
-    spdlog::info("->[Timer:Merge->Write] MEMORY_OOB: {}", merge_write_time.result());
+    // spdlog::info("->[Timer:Merge->Write] MEMORY_OOB: {}", merge_write_time.result());
     for (const auto &temp_record_path : temp_record_paths)
     {
         std::remove(temp_record_path.c_str());

@@ -5,20 +5,24 @@
 #include "spdlog/spdlog.h"
 #include "compact_payload.hpp"
 
-#include <mutex>
-#include <queue>
+#include <map>
+#include <omp.h>
 #include <deque>
-#include <memory>
-#include <random>
-#include <vector>
+#include <queue>
 #include <atomic>
+#include <memory>
+#include <mutex>
+#include <random>
 #include <string>
+#include <thread>
+#include <vector>
+#include <cstdint>
 #include <fstream>
 #include <utility>
-#include <cstdint>
-#include <optional>
-#include <unistd.h>
 #include <iostream>
+#include <unistd.h>
+#include <malloc.h>
+#include <optional>
 #include <stdexcept>
 #include <algorithm>
 #include <filesystem>
@@ -31,6 +35,8 @@ const std::string DATA_OUTPUT{"../data/output.bin"};
 const std::string DATA_TMP_DIR = "../data/tmp/";
 // default 1 GB
 const uint64_t IN_GB{1024UL * 1024UL * 1024UL};
+const uint64_t IN_MB{1024UL * 1024UL};
+const uint64_t IN_KB{1024UL};
 const uint16_t SEEDER_SIZE{42};
 inline std::string DATA_INPUT{""};
 inline uint64_t WORKERS{0};
@@ -39,7 +45,17 @@ inline uint64_t PAYLOAD_MAX{0};
 inline uint64_t RECORDS{0};
 inline uint64_t INPUT_BYTES{0};
 inline uint64_t DISTRIBUTION_CAP{0};
-
+inline uint64_t DEGREE{0};
+struct Report
+{
+    std::string METHOD{"IN-MEMORY"};
+    std::string RECORDS;
+    std::string PAYLOAD_SIZE;
+    uint64_t WORKERS;
+    std::string WORKING_TIME;
+    std::string TOTAL_TIME;
+};
+inline Report report;
 inline unsigned long get_tid()
 {
     return static_cast<unsigned long>(::syscall(SYS_gettid));
@@ -140,6 +156,11 @@ struct HeapNode
  * -------------- CLI and other processors --------------
  */
 void parse_cli_and_set(int argc, char **argv);
+/**
+ * IN_MEMORY decision and DISTRIBUTION_CAP
+ */
+bool in_memory_feasibility(double input_bytes, double memory_cap);
+void decide_distribution_cap();
 /**
  *  Writing just one record: [u64 key][u32 len][len bytes payload]
  */

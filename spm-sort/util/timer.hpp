@@ -58,23 +58,33 @@ public:
     {
         double value;
         const char *unit;
-        if (ns < 1'000'000)
+        if (ns < 1'000)
         {
+            // Nanoseconds (< 1 microsecond)
+            value = static_cast<double>(ns);
+            unit = "ns";
+        }
+        else if (ns < 1'000'000)
+        {
+            // Microseconds (< 1 millisecond)
             value = ns / 1'000.0;
             unit = "µs";
         }
         else if (ns < 1'000'000'000)
         {
+            // Milliseconds (< 1 second)
             value = ns / 1'000'000.0;
             unit = "ms";
         }
         else if (ns < 60'000'000'000)
         {
+            // Seconds (< 1 minute)
             value = ns / 1'000'000'000.0;
             unit = "s";
         }
         else
         {
+            // Minutes
             value = ns / 60'000'000'000.0;
             unit = "min";
         }

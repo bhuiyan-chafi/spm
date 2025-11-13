@@ -1,3 +1,11 @@
+/**
+ * THE FINAL VERSION
+ * we introduced additional stage as intermediate writers
+ * threadpools for writers
+ * writing distribution caps instead of segment = MEMORY_CAP
+ * too many writes of small chunks but saved collector bottleneck
+ * memory aggressive operation using malloc
+ */
 #include "main.hpp"
 
 namespace farm
