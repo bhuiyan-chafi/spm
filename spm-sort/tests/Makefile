@@ -53,8 +53,8 @@ farm:
 # --- MPI + FARM ---
 
 ff_mpi:	FLAGS += -pthread
-ff_mpi: INCLUDES += -I./include/fastflow/
-ff_mpi: LINKS += ./ff_mpi.cpp ../helpers/common.cpp ../helpers/helper_ff.cpp
+ff_mpi: INCLUDES += -I../include/fastflow/ -I../util/
+ff_mpi: LINKS += ../include/main.cpp ./ff_mpi.cpp
 ff_mpi:
 	$(COMPILEMPI) $(FLAGS) $(INCLUDES) $(LINKS) -o ./ff_mpi
 

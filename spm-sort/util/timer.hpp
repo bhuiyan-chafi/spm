@@ -47,6 +47,12 @@ public:
         return total_;
     }
 
+    // Add external elapsed time (for aggregating multiple timers)
+    void add_elapsed(nanosec ns)
+    {
+        total_ += ns;
+    }
+
     std::string result(int precision = 3) const
     {
         const long long ns = elapsed_ns().count();
