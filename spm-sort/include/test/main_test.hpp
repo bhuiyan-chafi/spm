@@ -30,6 +30,8 @@ const std::string DATA_OUTPUT{"../data/output.bin"};
 const std::string DATA_TMP_DIR = "../data/tmp/";
 // default 1 GB
 const uint64_t IN_GB{1024UL * 1024UL * 1024UL};
+const uint64_t IN_MB{1024UL * 1024UL};
+const uint64_t IN_KB{1024UL};
 const uint16_t SEEDER_SIZE{42};
 inline std::string DATA_INPUT{""};
 inline uint64_t WORKERS{0};

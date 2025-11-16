@@ -207,7 +207,7 @@ namespace ff_farm
                 accumulator += record_size;
             }
         }
-        void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
+        // void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
 
     private:
         std::ifstream in;
@@ -265,7 +265,7 @@ namespace ff_farm
         {
             const long long ns = timer_work.elapsed_ns().count();
             agg_->publish(static_cast<std::size_t>(idx_), ns);
-            spdlog::info("[Timer] Worker#{} total: {}", idx_, timer_work.result());
+            // spdlog::info("[Timer] Worker#{} total: {}", idx_, timer_work.result());
         }
 
     private:

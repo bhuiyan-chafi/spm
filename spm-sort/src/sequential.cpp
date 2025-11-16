@@ -32,7 +32,9 @@ int main(int argc, char **argv)
         // spdlog::info("->[Timer] : Total Sequential Sorting Time -> {}", seq_sort_time.result());
         // spdlog::info("==> Completed: Merge Sort, output -> {} <==", DATA_OUTPUT);
         report.TOTAL_TIME = seq_sort_time.result();
-        spdlog::info("METHOD: {} - RECORDS: {} - PAYLOAD_SIZE: {} - SORT_TYPE: {} - WORKERS: {} - DISTRIBUTION_CAP:{} - WORKER_TIME: {} - TOTAL_TIME: {}", report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.SORT_TYPE, report.WORKERS = 1, "NONE", report.WORKER_TIME, report.TOTAL_TIME);
+        spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}",
+                     report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS,
+                     DISTRIBUTION_CAP / IN_MB, report.WORKING_TIME, report.TOTAL_TIME);
     }
     catch (const std::exception &error)
     {

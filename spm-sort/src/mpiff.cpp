@@ -1,32 +1,90 @@
 #include "main.hpp"
-
 #include <mpi.h>
 
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-#include <filesystem>
-#include <memory>
-#include <optional>
-#include <queue>
-#include <stdexcept>
-#include <string>
-#include <utility>
-#include <vector>
+/**
+ * MPI + FastFlow Hybrid External Sort
+ *
+ * Architecture:
+ * - MPI: Multi-node distribution (master distributes segments to worker nodes)
+ * - FastFlow: Intra-node parallelism (each worker node runs a FastFlow farm)
+ *
+ * Master (rank 0):
+ * - Reads input file, creates segments at DISTRIBUTION_CAP boundaries
+ * - Dynamically distributes segments to idle worker nodes via MPI
+ * - Collects sorted segments from workers
+ * - Performs final k-way merge
+ *
+ * Workers (rank 1+):
+ * - Receive segment via MPI
+ * - Run FastFlow farm: Emitter slices → Workers sort → Collector merges
+ * - Send sorted segment back to master via MPI
+ */
 
 namespace
 {
     using Items = std::vector<Item>;
 
-    constexpr std::size_t INMEM_BATCH_RECORDS = 10'000;
+    // MPI Tags
+    constexpr int TAG_WORK = 1;
+    constexpr int TAG_RESULT = 2;
+    constexpr int TAG_TERMINATE = 3;
     constexpr uint8_t TERMINATE_FLAG = 0xFF;
+
+    // ==================== UTILITY FUNCTIONS ====================
+
+    static inline std::vector<std::pair<size_t, size_t>>
+    slice_ranges(size_t n, size_t parts)
+    {
+        if (parts == 0)
+            parts = 1;
+        std::vector<std::pair<size_t, size_t>> r;
+        r.reserve(parts);
+        for (size_t i = 0; i < parts; ++i)
+        {
+            size_t L = (i * n) / parts, R = ((i + 1) * n) / parts;
+            r.emplace_back(L, R);
+        }
+        return r;
+    }
+
+    // ==================== DATA STRUCTURES ====================
+
+    struct Task
+    {
+        std::vector<Item> *items;
+        size_t slice_index;
+    };
+
+    struct TaskResult
+    {
+        std::vector<Item> *items;
+        size_t slice_index;
+    };
+
+    struct WorkPackage
+    {
+        bool spill;
+        uint64_t segment_id;
+        Items items;
+    };
+
+    // ==================== MERGE FUNCTIONS ====================
+
+    struct HeapItem
+    {
+        size_t slice_idx, item_idx;
+        uint64_t key;
+        bool operator>(const HeapItem &other) const { return key > other.key; }
+    };
+
+    // ==================== MPI COMMUNICATION ====================
 
     enum class MsgTag : int
     {
-        TaskHeader = 1,
-        TaskKey = 2,
-        TaskLen = 3,
-        TaskPayload = 4,
+        WorkHeader = 1,
+        WorkKey = 2,
+        WorkLen = 3,
+        WorkPayload = 4,
         ResultHeader = 5,
         ResultKey = 6,
         ResultLen = 7,
@@ -37,180 +95,7 @@ namespace
     {
         uint8_t spill;
         uint64_t segment_id;
-        uint64_t slice_index;
         uint64_t item_count;
-    };
-
-    std::vector<std::pair<size_t, size_t>> make_slice_ranges(size_t n, size_t parts)
-    {
-        if (parts == 0)
-            parts = 1;
-        std::vector<std::pair<size_t, size_t>> ranges;
-        ranges.reserve(parts);
-        for (size_t i = 0; i < parts; ++i)
-        {
-            size_t L = (i * n) / parts;
-            size_t R = ((i + 1) * n) / parts;
-            if (L < R)
-                ranges.emplace_back(L, R);
-        }
-        if (ranges.empty())
-            ranges.emplace_back(0, n);
-        return ranges;
-    }
-
-    struct TaskPackage
-    {
-        bool spill{false};
-        uint64_t segment_id{0};
-        uint64_t slice_index{0};
-        Items items;
-    };
-
-    struct PendingRecord
-    {
-        Item item;
-        uint64_t bytes{0};
-    };
-
-    class TaskGenerator
-    {
-    public:
-        TaskGenerator(std::size_t worker_count, bool &saw_spill)
-            : in(DATA_INPUT, std::ios::binary),
-              worker_count(worker_count ? worker_count : 1)
-        {
-            if (!in)
-                throw std::runtime_error("Emitter: cannot open input stream");
-            namespace fs = std::filesystem;
-            std::error_code ec;
-            auto size = fs::file_size(DATA_INPUT, ec);
-            in_memory_mode = (!ec) && size <= MEMORY_CAP;
-            // spdlog::info("[MPI] TaskGenerator initialized: size={} bytes, memory_cap={} bytes, in_memory_mode={}",
-            //              size,
-            //              MEMORY_CAP,
-            //              in_memory_mode);
-            saw_spill = !in_memory_mode;
-        }
-
-        bool next(TaskPackage &task)
-        {
-            if (in_memory_mode)
-            {
-                return next_in_memory(task);
-            }
-            return next_out_of_core(task);
-        }
-
-    private:
-        bool next_in_memory(TaskPackage &task)
-        {
-            Items batch;
-            batch.reserve(INMEM_BATCH_RECORDS);
-            while (batch.size() < INMEM_BATCH_RECORDS)
-            {
-                uint64_t key;
-                std::vector<uint8_t> payload;
-                if (!read_record(in, key, payload))
-                    break;
-                batch.push_back(Item{key, std::move(payload)});
-            }
-            if (batch.empty())
-                return false;
-
-            task.spill = false;
-            task.segment_id = 0;
-            task.slice_index = inmem_batch_id++;
-            // spdlog::info("[MPI][TaskGen] In-memory batch {} prepared with {} items", task.slice_index, batch.size());
-            task.items = std::move(batch);
-            return true;
-        }
-
-        bool next_out_of_core(TaskPackage &task)
-        {
-            while (true)
-            {
-                if (!current_segment || next_range_index >= current_ranges.size())
-                {
-                    if (!load_next_segment())
-                        return false;
-                }
-
-                auto [L, R] = current_ranges[next_range_index++];
-                Items slice;
-                slice.reserve(R - L);
-                for (size_t j = L; j < R; ++j)
-                    slice.push_back(std::move((*current_segment)[j]));
-
-                task.spill = true;
-                task.segment_id = current_segment_id;
-                task.slice_index = next_range_index - 1;
-                // spdlog::info("[MPI][TaskGen] Segment {} slice {} prepared with {} items ({}..{})",
-                //              current_segment_id,
-                //              task.slice_index,
-                //              slice.size(),
-                //              L,
-                //              R);
-                task.items = std::move(slice);
-
-                if (next_range_index >= current_ranges.size())
-                    current_segment.reset();
-
-                return true;
-            }
-        }
-
-        bool load_next_segment()
-        {
-            current_segment = std::make_unique<Items>();
-            current_segment->reserve(64'000);
-            uint64_t accumulator = 0ULL;
-
-            if (carry)
-            {
-                accumulator += carry->bytes;
-                current_segment->push_back(std::move(carry->item));
-                carry.reset();
-            }
-
-            while (true)
-            {
-                uint64_t key;
-                std::vector<uint8_t> payload;
-                if (!read_record(in, key, payload))
-                    break;
-                uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
-                if (!current_segment->empty() && accumulator + record_size > MEMORY_CAP)
-                {
-                    carry = PendingRecord{Item{key, std::move(payload)}, record_size};
-                    break;
-                }
-                accumulator += record_size;
-                current_segment->push_back(Item{key, std::move(payload)});
-            }
-
-            if (current_segment->empty())
-            {
-                current_segment.reset();
-                return false;
-            }
-
-            current_ranges = make_slice_ranges(current_segment->size(), worker_count);
-            next_range_index = 0;
-            current_segment_id = segment_id_counter++;
-            return true;
-        }
-
-        std::ifstream in;
-        const std::size_t worker_count;
-        bool in_memory_mode{false};
-        uint64_t inmem_batch_id{0};
-        std::optional<PendingRecord> carry;
-        std::unique_ptr<Items> current_segment;
-        std::vector<std::pair<size_t, size_t>> current_ranges;
-        size_t next_range_index{0};
-        uint64_t current_segment_id{0};
-        uint64_t segment_id_counter{0};
     };
 
     void send_header(int dest, const MessageHeader &header, MsgTag tag, MPI_Comm comm)
@@ -271,9 +156,10 @@ namespace
             MPI_Recv(&key, 1, MPI_UINT64_T, source, static_cast<int>(key_tag), comm, MPI_STATUS_IGNORE);
             uint32_t payload_len = 0;
             MPI_Recv(&payload_len, 1, MPI_UINT32_T, source, static_cast<int>(len_tag), comm, MPI_STATUS_IGNORE);
-            std::vector<uint8_t> payload(payload_len);
+            CompactPayload payload;
             if (payload_len > 0)
             {
+                payload.resize(payload_len);
                 MPI_Recv(payload.data(),
                          static_cast<int>(payload_len),
                          MPI_BYTE,
@@ -286,49 +172,46 @@ namespace
         }
     }
 
-    void send_task(int dest, const TaskPackage &task, MPI_Comm comm)
+    void send_work(int dest, const WorkPackage &work, MPI_Comm comm)
     {
         MessageHeader header{};
-        header.spill = task.spill ? 1 : 0;
-        header.segment_id = task.segment_id;
-        header.slice_index = task.slice_index;
-        header.item_count = task.items.size();
-        send_header(dest, header, MsgTag::TaskHeader, comm);
-        send_items(dest, task.items, MsgTag::TaskKey, MsgTag::TaskLen, MsgTag::TaskPayload, comm);
+        header.spill = work.spill ? 1 : 0;
+        header.segment_id = work.segment_id;
+        header.item_count = work.items.size();
+        send_header(dest, header, MsgTag::WorkHeader, comm);
+        send_items(dest, work.items, MsgTag::WorkKey, MsgTag::WorkLen, MsgTag::WorkPayload, comm);
     }
 
-    bool receive_task(int source, TaskPackage &task, MPI_Comm comm)
+    bool receive_work(int source, WorkPackage &work, MPI_Comm comm)
     {
-        MessageHeader header = receive_header(source, MsgTag::TaskHeader, comm);
+        MessageHeader header = receive_header(source, MsgTag::WorkHeader, comm);
         if (header.spill == TERMINATE_FLAG && header.item_count == 0)
             return false;
         Items items;
         receive_items(source,
                       items,
                       header.item_count,
-                      MsgTag::TaskKey,
-                      MsgTag::TaskLen,
-                      MsgTag::TaskPayload,
+                      MsgTag::WorkKey,
+                      MsgTag::WorkLen,
+                      MsgTag::WorkPayload,
                       comm);
-        task.spill = header.spill != 0;
-        task.segment_id = header.segment_id;
-        task.slice_index = header.slice_index;
-        task.items = std::move(items);
+        work.spill = header.spill != 0;
+        work.segment_id = header.segment_id;
+        work.items = std::move(items);
         return true;
     }
 
-    void send_result(int dest, const TaskPackage &result, MPI_Comm comm)
+    void send_result(int dest, const WorkPackage &result, MPI_Comm comm)
     {
         MessageHeader header{};
         header.spill = result.spill ? 1 : 0;
         header.segment_id = result.segment_id;
-        header.slice_index = result.slice_index;
         header.item_count = result.items.size();
         send_header(dest, header, MsgTag::ResultHeader, comm);
         send_items(dest, result.items, MsgTag::ResultKey, MsgTag::ResultLen, MsgTag::ResultPayload, comm);
     }
 
-    TaskPackage receive_result(MPI_Comm comm, int &source_rank)
+    WorkPackage receive_result(MPI_Comm comm, int &source_rank)
     {
         MPI_Status status;
         MessageHeader header{};
@@ -350,17 +233,10 @@ namespace
                       MsgTag::ResultPayload,
                       comm);
 
-        TaskPackage result;
+        WorkPackage result;
         result.spill = header.spill != 0;
         result.segment_id = header.segment_id;
-        result.slice_index = header.slice_index;
         result.items = std::move(items);
-        // spdlog::info("[MPI][Master] Received result from rank {} -> segment {}, slice {}, spill={}, items={}",
-        //              source_rank,
-        //              result.segment_id,
-        //              result.slice_index,
-        //              result.spill,
-        //              result.items.size());
         return result;
     }
 
@@ -369,126 +245,167 @@ namespace
         MessageHeader header{};
         header.spill = TERMINATE_FLAG;
         header.item_count = 0;
-        send_header(dest, header, MsgTag::TaskHeader, comm);
+        send_header(dest, header, MsgTag::WorkHeader, comm);
     }
 
-    void finalize_in_memory(std::vector<std::unique_ptr<Items>> &batches)
+    // ==================== FASTFLOW NODES (Worker-side) ====================
+
+    namespace ff_worker
     {
-        std::ofstream out(DATA_OUTPUT, std::ios::binary);
-        if (!out)
-            throw std::runtime_error("Collector(inmem): cannot open output");
-
-        struct HeapNode
+        struct Emitter : ff::ff_node_t<Task>
         {
-            std::size_t batch_index;
-            std::size_t item_index;
-            uint64_t key;
+            Emitter(Items *segment) : segment_(segment) {}
+
+            Task *svc(Task *) override
+            {
+                auto ranges = slice_ranges(segment_->size(), DEGREE);
+                // spdlog::info("[FF][Emitter] Slicing {} items into {} slices", segment_->size(), ranges.size());
+                for (size_t i = 0; i < ranges.size(); ++i)
+                {
+                    auto [L, R] = ranges[i];
+                    auto *slice = new Items;
+                    slice->reserve(R - L);
+                    for (size_t j = L; j < R; ++j)
+                        slice->push_back(std::move((*segment_)[j]));
+                    ff_send_out(new Task{slice, i});
+                }
+                return EOS;
+            }
+
+        private:
+            Items *segment_;
         };
 
-        struct Compare
+        struct Worker : ff::ff_node_t<Task, TaskResult>
         {
-            bool operator()(const HeapNode &a, const HeapNode &b) const
+            Worker(std::shared_ptr<Timings> agg, int idx, TimerClass *external_timer = nullptr)
+                : agg_(std::move(agg)), idx_(idx), external_timer_(external_timer) {}
+
+            TaskResult *svc(Task *task) override
             {
-                return a.key > b.key;
+                auto *local_items = task->items;
+                // spdlog::info("[FF][Worker-{}] Sorting slice {} ({} items)", idx_, task->slice_index, local_items->size());
+
+                TimerClass &timer = external_timer_ ? *external_timer_ : timer_work;
+                timer.start();
+                std::sort(local_items->begin(), local_items->end(),
+                          [](const Item &a, const Item &b)
+                          { return a.key < b.key; });
+                timer.stop();
+
+                auto *result = new TaskResult{local_items, task->slice_index};
+                delete task;
+                return result;
             }
+
+            void svc_end() override
+            {
+                // Only publish if using internal timer (not external)
+                if (!external_timer_)
+                {
+                    const long long ns = timer_work.elapsed_ns().count();
+                    agg_->publish(static_cast<std::size_t>(idx_), ns);
+                }
+                // spdlog::info("[FF][Worker-{}] Total: {}", idx_, timer_work.result());
+            }
+
+        private:
+            std::shared_ptr<Timings> agg_;
+            int idx_;
+            TimerClass *external_timer_; // If provided, use this instead of timer_work
+            TimerClass timer_work;       // Internal timer (used when external_timer_ is null)
         };
 
-        std::priority_queue<HeapNode, std::vector<HeapNode>, Compare> heap;
-        for (std::size_t b = 0; b < batches.size(); ++b)
+        struct Collector : ff::ff_node_t<TaskResult, void>
         {
-            if (!batches[b]->empty())
+            Collector(Items *output) : output_(output) {}
+
+            void *svc(TaskResult *result) override
             {
-                heap.push(HeapNode{b, 0, (*batches[b])[0].key});
+                slices_.push_back(result);
+                return GO_ON;
             }
-        }
 
-        std::size_t written = 0;
-        while (!heap.empty())
-        {
-            auto node = heap.top();
-            heap.pop();
-            const Item &item = (*batches[node.batch_index])[node.item_index];
-            write_record(out, item.key, item.payload);
-            ++written;
-            std::size_t next_index = node.item_index + 1;
-            if (next_index < batches[node.batch_index]->size())
+            void svc_end() override
             {
-                heap.push(HeapNode{node.batch_index, next_index, (*batches[node.batch_index])[next_index].key});
+                // K-way merge all slices into output
+                if (slices_.empty())
+                    return;
+
+                std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>> heap;
+                for (size_t s = 0; s < slices_.size(); ++s)
+                    if (slices_[s]->items && !slices_[s]->items->empty())
+                        heap.push(HeapItem{s, 0, (*slices_[s]->items)[0].key});
+
+                output_->clear();
+                output_->reserve(estimate_total_items());
+
+                while (!heap.empty())
+                {
+                    auto current = heap.top();
+                    heap.pop();
+                    const Item &item = (*slices_[current.slice_idx]->items)[current.item_idx];
+                    output_->push_back(item);
+
+                    const size_t next_idx = current.item_idx + 1;
+                    if (next_idx < slices_[current.slice_idx]->items->size())
+                        heap.push(HeapItem{current.slice_idx, next_idx,
+                                           (*slices_[current.slice_idx]->items)[next_idx].key});
+                }
+
+                // Free memory
+                for (auto &slice : slices_)
+                {
+                    if (slice->items)
+                    {
+                        delete slice->items;
+                        slice->items = nullptr;
+                    }
+                    delete slice;
+                }
+                slices_.clear();
+
+                // spdlog::info("[FF][Collector] Merged {} slices -> {} items", slices_.size(), output_->size());
             }
-        }
-        spdlog::info("Collector(inmem): wrote {} records -> {}", written, DATA_OUTPUT);
-    }
 
-    void finalize_spill(const std::vector<std::string> &run_paths)
-    {
-        if (run_paths.empty())
-        {
-            spdlog::warn("Collector(ooc): no runs produced");
-            std::ofstream(DATA_OUTPUT, std::ios::binary);
-            return;
-        }
+        private:
+            size_t estimate_total_items()
+            {
+                size_t total = 0;
+                for (const auto &slice : slices_)
+                    if (slice->items)
+                        total += slice->items->size();
+                return total;
+            }
 
-        std::ofstream out(DATA_OUTPUT, std::ios::binary);
-        if (!out)
-            throw std::runtime_error("Collector(ooc): cannot open output");
-
-        std::vector<std::unique_ptr<TempReader>> readers;
-        readers.reserve(run_paths.size());
-        for (const auto &path : run_paths)
-            readers.push_back(std::make_unique<TempReader>(path));
-
-        struct HeapNode
-        {
-            uint64_t key;
-            std::size_t temp_run_index;
+            Items *output_;
+            std::vector<TaskResult *> slices_;
         };
-        struct Compare
-        {
-            bool operator()(const HeapNode &a, const HeapNode &b) const
-            {
-                return a.key > b.key;
-            }
-        };
+    } // namespace ff_worker
 
-        std::priority_queue<HeapNode, std::vector<HeapNode>, Compare> heap;
-        for (std::size_t i = 0; i < readers.size(); ++i)
-        {
-            if (!readers[i]->eof)
-                heap.push(HeapNode{readers[i]->key, i});
-        }
-
-        std::size_t written = 0;
-        while (!heap.empty())
-        {
-            auto top = heap.top();
-            heap.pop();
-            auto &reader = *readers[top.temp_run_index];
-            write_record(out, reader.key, reader.payload);
-            ++written;
-            reader.advance();
-            if (!reader.eof)
-                heap.push(HeapNode{reader.key, top.temp_run_index});
-        }
-
-        spdlog::info("Collector(ooc): wrote {} records -> {}", written, DATA_OUTPUT);
-
-        for (const auto &path : run_paths)
-        {
-            std::error_code ec;
-            std::filesystem::remove(path, ec);
-        }
-    }
+    // ==================== MASTER NODE ====================
 
     void master_main(int world_size)
     {
         if (world_size < 2)
-            throw std::runtime_error("MPI farm requires at least 2 processes");
+            throw std::runtime_error("MPI+FastFlow requires at least 2 processes");
 
         std::filesystem::create_directories(DATA_TMP_DIR);
 
-        const std::size_t worker_count = WORKERS ? static_cast<std::size_t>(WORKERS) : 1;
-        bool saw_spill = false;
-        TaskGenerator generator(worker_count, saw_spill);
+        // Determine mode
+        namespace fs = std::filesystem;
+        std::error_code ec;
+        const auto stream_bytes = fs::file_size(DATA_INPUT, ec);
+        const bool fits_in_memory = (!ec) && stream_bytes <= MEMORY_CAP;
+
+        // spdlog::info("[MPI][Master] Mode: {}, size={} bytes, MEMORY_CAP={} bytes",
+        //              fits_in_memory ? "IN-MEMORY" : "OOC",
+        //              stream_bytes,
+        //              MEMORY_CAP);
+
+        std::ifstream in(DATA_INPUT, std::ios::binary);
+        if (!in)
+            throw std::runtime_error("Master: cannot open input");
 
         std::queue<int> idle_workers;
         for (int rank = 1; rank < world_size; ++rank)
@@ -499,75 +416,254 @@ namespace
         uint64_t run_id = 0;
 
         uint64_t tasks_outstanding = 0;
-        bool no_more_tasks = false;
+        uint64_t segment_id = 0;
 
-        while (!no_more_tasks || tasks_outstanding > 0)
+        auto read_and_send_segment = [&]() -> bool
         {
-            while (!idle_workers.empty() && !no_more_tasks)
+            if (idle_workers.empty())
+                return false;
+
+            Items segment;
+            segment.reserve(64'000);
+            uint64_t accumulator = 0ULL;
+
+            while (true)
             {
-                TaskPackage task;
-                if (!generator.next(task))
+                uint64_t key;
+                CompactPayload payload;
+                if (!read_record(in, key, payload))
                 {
-                    no_more_tasks = true;
+                    if (segment.empty())
+                        return false;
                     break;
                 }
-                int worker = idle_workers.front();
-                idle_workers.pop();
-                send_task(worker, task, MPI_COMM_WORLD);
-                tasks_outstanding++;
-                if (task.spill)
-                    saw_spill = true;
+                const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
+                if (accumulator + record_size > DISTRIBUTION_CAP && !segment.empty())
+                    break;
+                segment.push_back(Item{key, std::move(payload)});
+                accumulator += record_size;
             }
 
-            if (tasks_outstanding == 0)
-                break;
+            if (segment.empty())
+                return false;
 
+            int worker = idle_workers.front();
+            idle_workers.pop();
+
+            WorkPackage work{!fits_in_memory, segment_id++, std::move(segment)};
+            send_work(worker, work, MPI_COMM_WORLD);
+            tasks_outstanding++;
+            // spdlog::info("[MPI][Master] Sent segment {} to worker {} ({} items)",
+            //              work.segment_id, worker, work.items.size());
+            return true;
+        };
+
+        // Send initial work
+        while (read_and_send_segment())
+            ;
+
+        // Collect results and send more work
+        while (tasks_outstanding > 0)
+        {
             int source_rank = 0;
-            TaskPackage result = receive_result(MPI_COMM_WORLD, source_rank);
+            WorkPackage result = receive_result(MPI_COMM_WORLD, source_rank);
             tasks_outstanding--;
             idle_workers.push(source_rank);
 
+            // spdlog::info("[MPI][Master] Received result from rank {} -> segment {} ({} items)",
+            //              source_rank, result.segment_id, result.items.size());
+
             if (result.spill)
             {
+                // OOC mode: write segment immediately (already merged by worker's FastFlow)
                 auto path = DATA_TMP_DIR + "mpi_run_" + std::to_string(run_id++) + ".bin";
-                auto path_copy = path;
-                write_temp_slice(path_copy, result.items);
+                std::ofstream out(path, std::ios::binary);
+                if (!out)
+                    throw std::runtime_error("Cannot write: " + path);
+                for (const auto &item : result.items)
+                    write_record(out, item.key, item.payload);
                 run_paths.push_back(std::move(path));
+                // spdlog::info("[MPI][Master] Segment {} written -> {}", result.segment_id, run_paths.back());
             }
             else
             {
                 inmem_batches.push_back(std::make_unique<Items>(std::move(result.items)));
             }
+
+            // Try to send more work
+            read_and_send_segment();
         }
 
+        // Terminate workers
         for (int rank = 1; rank < world_size; ++rank)
             send_terminate(rank, MPI_COMM_WORLD);
 
+        // Final merge
         if (!run_paths.empty())
-            saw_spill = true;
-
-        if (saw_spill)
-            finalize_spill(run_paths);
-        else
-            finalize_in_memory(inmem_batches);
-    }
-
-    void worker_main()
-    {
-        while (true)
         {
-            TaskPackage task;
-            if (!receive_task(0, task, MPI_COMM_WORLD))
-                break;
+            report.METHOD = "MPI_OOC";
+            // K-way merge of run files
+            std::ofstream out(DATA_OUTPUT, std::ios::binary);
+            if (!out)
+                throw std::runtime_error("Cannot open output");
 
-            std::sort(task.items.begin(), task.items.end(),
-                      [](const Item &a, const Item &b)
-                      { return a.key < b.key; });
+            std::vector<std::unique_ptr<TempReader>> readers;
+            readers.reserve(run_paths.size());
+            for (const auto &path : run_paths)
+                readers.push_back(std::make_unique<TempReader>(path));
 
-            send_result(0, task, MPI_COMM_WORLD);
+            struct HeapNode
+            {
+                uint64_t key;
+                std::size_t run_index;
+            };
+            struct Cmp
+            {
+                bool operator()(const HeapNode &a, const HeapNode &b) const { return a.key > b.key; }
+            };
+
+            std::priority_queue<HeapNode, std::vector<HeapNode>, Cmp> heap;
+            for (std::size_t i = 0; i < readers.size(); ++i)
+                if (!readers[i]->eof)
+                    heap.push(HeapNode{readers[i]->key, i});
+
+            size_t written = 0;
+            while (!heap.empty())
+            {
+                auto top = heap.top();
+                heap.pop();
+                auto &reader = *readers[top.run_index];
+                write_record(out, reader.key, reader.payload);
+                ++written;
+                reader.advance();
+                if (!reader.eof)
+                    heap.push(HeapNode{reader.key, top.run_index});
+            }
+
+            // spdlog::info("[MPI][Master] Final merge complete: {} records", written);
+
+            // Cleanup
+            for (const auto &path : run_paths)
+            {
+                std::error_code ec;
+                std::filesystem::remove(path, ec);
+            }
+        }
+        else
+        {
+            report.METHOD = "MPI_INMEM";
+            // In-memory final merge
+            std::ofstream out(DATA_OUTPUT, std::ios::binary);
+            if (!out)
+                throw std::runtime_error("Cannot open output");
+
+            struct HeapNode
+            {
+                std::size_t batch_index;
+                std::size_t item_index;
+                uint64_t key;
+            };
+            struct Cmp
+            {
+                bool operator()(const HeapNode &a, const HeapNode &b) const { return a.key > b.key; }
+            };
+
+            std::priority_queue<HeapNode, std::vector<HeapNode>, Cmp> heap;
+            for (std::size_t b = 0; b < inmem_batches.size(); ++b)
+                if (!inmem_batches[b]->empty())
+                    heap.push(HeapNode{b, 0, (*inmem_batches[b])[0].key});
+
+            size_t written = 0;
+            while (!heap.empty())
+            {
+                auto node = heap.top();
+                heap.pop();
+                const Item &item = (*inmem_batches[node.batch_index])[node.item_index];
+                write_record(out, item.key, item.payload);
+                ++written;
+                std::size_t next_idx = node.item_index + 1;
+                if (next_idx < inmem_batches[node.batch_index]->size())
+                    heap.push(HeapNode{node.batch_index, next_idx, (*inmem_batches[node.batch_index])[next_idx].key});
+            }
+
+            // spdlog::info("[MPI][Master] In-memory merge complete: {} records", written);
         }
     }
+
+    // ==================== WORKER NODE ====================
+
+    void worker_main(int rank)
+    {
+        // Create Timings once for entire worker lifetime, accumulates across all segments
+        std::shared_ptr<Timings> timings = std::make_shared<Timings>(WORKERS);
+
+        // Create persistent timers that accumulate across all farms/segments
+        std::vector<TimerClass> worker_timers(WORKERS);
+        uint64_t segments_processed = 0;
+
+        while (true)
+        {
+            WorkPackage work;
+            if (!receive_work(0, work, MPI_COMM_WORLD))
+                break;
+
+            // spdlog::info("[MPI][Worker-{}] Received segment {} ({} items)",
+            //              rank, work.segment_id, work.items.size());
+
+            // Run FastFlow farm on this segment
+            Items result;
+            {
+                using namespace ff_worker;
+
+                Emitter emitter(&work.items);
+                Collector collector(&result);
+
+                // Create workers that share references to persistent timers
+                ff::ff_Farm<Task, TaskResult> farm([&]()
+                                                   {
+                    std::vector<std::unique_ptr<ff::ff_node>> W;
+                    W.reserve(WORKERS);
+                    for (uint64_t i = 0; i < WORKERS; ++i)
+                        W.push_back(std::make_unique<Worker>(timings, static_cast<int>(i), &worker_timers[i]));
+                    return W; }());
+
+                farm.add_emitter(emitter);
+                farm.add_collector(collector);
+                farm.set_scheduling_ondemand(DEGREE);
+
+                if (farm.run_and_wait_end() < 0)
+                {
+                    spdlog::error("[MPI][Worker-{}] FastFlow farm execution failed", rank);
+                    throw std::runtime_error("FastFlow farm failed");
+                }
+            }
+
+            segments_processed++;
+            // spdlog::info("[MPI][Worker-{}] FastFlow farm complete, sending {} items back (segment {})",
+            //              rank, result.size(), segments_processed);
+
+            WorkPackage response{work.spill, work.segment_id, std::move(result)};
+            send_result(0, response, MPI_COMM_WORLD);
+        }
+
+        // Publish accumulated timing from all persistent timers
+        for (size_t i = 0; i < WORKERS; ++i)
+        {
+            const long long ns = worker_timers[i].elapsed_ns().count();
+            timings->publish(i, ns);
+        }
+
+        // Send accumulated timing back to master
+        uint64_t elapsed_ns = timings->total();
+        MPI_Send(&elapsed_ns, 1, MPI_UINT64_T, 0, 999, MPI_COMM_WORLD);
+
+        // spdlog::info("[MPI][Worker-{}] Finished: {} segments processed, total time: {}",
+        //  rank, segments_processed, timings->total_str());
+    }
+
 } // namespace
+
+// ==================== MAIN ====================
 
 int main(int argc, char **argv)
 {
@@ -581,18 +677,44 @@ int main(int argc, char **argv)
     try
     {
         parse_cli_and_set(argc, argv);
+
         if (world_rank == 0)
         {
             TimerClass total_time;
+            TimerClass total_worker_time;
             {
                 TimerScope total_scope(total_time);
                 master_main(world_size);
             }
-            spdlog::info("->[Timer] : Total MPI FARM Sorting Time -> {}", total_time.result());
+
+            // Collect worker times from all workers
+            uint64_t accumulated_worker_ns = 0;
+            for (int rank = 1; rank < world_size; ++rank)
+            {
+                uint64_t worker_ns = 0;
+                MPI_Recv(&worker_ns, 1, MPI_UINT64_T, rank, 999, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                accumulated_worker_ns += worker_ns;
+            }
+            total_worker_time.add_elapsed(std::chrono::nanoseconds(accumulated_worker_ns));
+
+            // Set report values
+            report.WORKERS = world_size - 1; // Number of MPI workers
+            report.WORKING_TIME = total_worker_time.result();
+            report.TOTAL_TIME = total_time.result();
+
+            // Final report matching ff_farm.cpp format
+            spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}",
+                         report.METHOD,
+                         report.RECORDS,
+                         report.PAYLOAD_SIZE,
+                         report.WORKERS,
+                         DISTRIBUTION_CAP / IN_MB,
+                         report.WORKING_TIME,
+                         report.TOTAL_TIME);
         }
         else
         {
-            worker_main();
+            worker_main(world_rank);
         }
     }
     catch (const std::exception &error)

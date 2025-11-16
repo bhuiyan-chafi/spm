@@ -106,7 +106,8 @@ void parse_cli_and_set(int argc, char **argv)
                 // spdlog::warn("Input size exceeds MEMORY_CAP considering overhead, you should not process it within memory.");
             }
         }
-        DEGREE = static_cast<uint64_t>(pow(static_cast<double>(WORKERS), static_cast<double>(WORKERS)));
+        // DEGREE = WORKER^WORKER
+        DEGREE = static_cast<uint64_t>(pow(static_cast<double>(WORKERS), static_cast<double>(2)));
         decide_distribution_cap();
         // spdlog::info("Choosen Degree:{}", DEGREE);
         // spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
@@ -125,9 +126,12 @@ bool in_memory_feasibility(double input_bytes, double memory_cap)
 void decide_distribution_cap()
 {
     uint64_t l1_cache = sysconf(_SC_LEVEL1_DCACHE_SIZE);
-    uint64_t cap = l1_cache * DEGREE;
-    //  64KiB * 4^4 = 4096KiB
-    DISTRIBUTION_CAP = std::max(32UL, cap);
+    uint64_t cap = l1_cache * DEGREE; // for my machine: 32KiB * 8^2 = result
+    /**
+     * minimum read is 8MiB
+     * if you assign less/more workers than available you may get performance issues
+     */
+    DISTRIBUTION_CAP = std::max(8388608UL, cap);
     // spdlog::info("Decided DISTRIBUTION_CAP: {}B based on your machine's L1_CACHE: {}B", DISTRIBUTION_CAP, l1_cache);
 }
 bool read_record(std::istream &stream_in, uint64_t &key_out,

@@ -657,8 +657,8 @@ namespace
         uint64_t elapsed_ns = timings->total();
         MPI_Send(&elapsed_ns, 1, MPI_UINT64_T, 0, 999, MPI_COMM_WORLD);
 
-        spdlog::info("[MPI][Worker-{}] Finished: {} segments processed, total time: {}",
-                     rank, segments_processed, timings->total_str());
+        // spdlog::info("[MPI][Worker-{}] Finished: {} segments processed, total time: {}",
+        //  rank, segments_processed, timings->total_str());
     }
 
 } // namespace

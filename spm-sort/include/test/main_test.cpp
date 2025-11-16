@@ -94,10 +94,8 @@ void parse_cli(int argc, char **argv)
             PAYLOAD_MAX = 256;
         // spdlog::info("==> Calculating INPUT_SIZE <==");
         INPUT_BYTES = estimate_stream_size();
-        //  example: 1GB/4GB = 1GB -> (1 * 1GB) / 4(workers) = 256MiB buffer to read
-        DISTRIBUTION_CAP = std::max(1UL, (INPUT_BYTES / MEMORY_CAP));
-        DISTRIBUTION_CAP = (DISTRIBUTION_CAP * IN_GB) / WORKERS;
-        // spdlog::info("==> Parameters : IN_PATH={}, IN_SIZE: {} GiB, M_CAP={} GiB, W={} <==", DATA_INPUT, INPUT_BYTES / (1024.0 * 1024.0 * 1024.0), memory, WORKERS);
+        //  8MiB fixed for sequential process, but you can tune later.
+        DISTRIBUTION_CAP = 8388608UL;
     }
 }
 

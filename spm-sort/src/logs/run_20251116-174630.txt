@@ -1,0 +1,1006 @@
+M: METHODS,
+R: RECORDS,
+PS: PAYLOAD_SIZE,
+W: WORKERS,
+DC: DISTRIBUTION_CAP,
+WT: WORKING_TIME,
+TT: TOTAL_TIME
+
+Starting test run at domenica, novembre 16, 2025 - 05:46:30 
+
+Starting Sequential implementation:
+
+Starting OpenMP implementation:
+
+[2025-11-16 17:46:32.481] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 2 | DC:8MiB | WT: 97.742 ms | TT: 1.712 s
+[2025-11-16 17:46:33.896] [info] ==> Verification Completed <==
+[2025-11-16 17:46:42.860] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 2 | DC:8MiB | WT: 573.974 ms | TT: 8.961 s
+[2025-11-16 17:46:47.838] [info] ==> Verification Completed <==
+[2025-11-16 17:47:08.970] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 2 | DC:8MiB | WT: 622.411 ms | TT: 21.127 s
+[2025-11-16 17:47:16.106] [info] ==> Verification Completed <==
+[2025-11-16 17:47:45.158] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 2 | DC:8MiB | WT: 1.215 s | TT: 29.031 s
+[2025-11-16 17:47:52.388] [info] ==> Verification Completed <==
+[2025-11-16 17:48:39.861] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 2 | DC:8MiB | WT: 1.034 s | TT: 47.456 s
+[2025-11-16 17:48:49.435] [info] ==> Verification Completed <==
+[2025-11-16 17:51:12.997] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 2 | DC:8MiB | WT: 11.899 s | TT: 2.392 min
+[2025-11-16 17:52:19.161] [info] ==> Verification Completed <==
+[2025-11-16 17:55:11.982] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 2 | DC:8MiB | WT: 11.354 s | TT: 2.879 min
+[2025-11-16 17:56:23.876] [info] ==> Verification Completed <==
+[2025-11-16 17:56:27.627] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 4 | DC:8MiB | WT: 112.141 ms | TT: 3.648 s
+[2025-11-16 17:56:29.037] [info] ==> Verification Completed <==
+[2025-11-16 17:56:39.078] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 4 | DC:8MiB | WT: 623.573 ms | TT: 10.038 s
+[2025-11-16 17:56:44.067] [info] ==> Verification Completed <==
+[2025-11-16 17:57:22.780] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 4 | DC:8MiB | WT: 586.460 ms | TT: 38.700 s
+[2025-11-16 17:57:29.964] [info] ==> Verification Completed <==
+[2025-11-16 17:58:01.272] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 4 | DC:8MiB | WT: 1.317 s | TT: 31.289 s
+[2025-11-16 17:58:08.563] [info] ==> Verification Completed <==
+[2025-11-16 17:58:50.191] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 4 | DC:8MiB | WT: 1.226 s | TT: 41.612 s
+[2025-11-16 17:58:59.713] [info] ==> Verification Completed <==
+[2025-11-16 18:01:32.024] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 4 | DC:8MiB | WT: 14.817 s | TT: 2.538 min
+[2025-11-16 18:02:38.333] [info] ==> Verification Completed <==
+[2025-11-16 18:06:02.260] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 4 | DC:8MiB | WT: 14.326 s | TT: 3.398 min
+[2025-11-16 18:07:15.242] [info] ==> Verification Completed <==
+[2025-11-16 18:28:53.632] [info] M: MEMORY_OOC | R: 100M | PS: 128 | W: 4 | DC:8MiB | WT: 34.135 s | TT: 21.638 min
+[2025-11-16 18:31:05.847] [info] ==> Verification Completed <==
+[2025-11-16 18:31:11.047] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 8 | DC:8MiB | WT: 109.525 ms | TT: 4.981 s
+[2025-11-16 18:31:12.465] [info] ==> Verification Completed <==
+[2025-11-16 18:31:30.386] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 8 | DC:8MiB | WT: 714.499 ms | TT: 17.918 s
+[2025-11-16 18:31:35.577] [info] ==> Verification Completed <==
+[2025-11-16 18:32:18.221] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 8 | DC:8MiB | WT: 635.819 ms | TT: 42.642 s
+[2025-11-16 18:32:25.344] [info] ==> Verification Completed <==
+[2025-11-16 18:33:01.205] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 8 | DC:8MiB | WT: 1.517 s | TT: 35.839 s
+[2025-11-16 18:33:08.497] [info] ==> Verification Completed <==
+[2025-11-16 18:33:57.176] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 8 | DC:8MiB | WT: 1.415 s | TT: 48.661 s
+[2025-11-16 18:34:06.670] [info] ==> Verification Completed <==
+[2025-11-16 18:37:36.943] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 8 | DC:8MiB | WT: 20.249 s | TT: 3.504 min
+[2025-11-16 18:38:39.795] [info] ==> Verification Completed <==
+[2025-11-16 18:41:29.962] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 8 | DC:8MiB | WT: 17.838 s | TT: 2.835 min
+[2025-11-16 18:42:42.035] [info] ==> Verification Completed <==
+[2025-11-16 18:42:45.522] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 16 | DC:8MiB | WT: 96.437 ms | TT: 3.391 s
+[2025-11-16 18:42:46.944] [info] ==> Verification Completed <==
+[2025-11-16 18:42:56.705] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 16 | DC:8MiB | WT: 444.551 ms | TT: 9.755 s
+[2025-11-16 18:43:01.667] [info] ==> Verification Completed <==
+[2025-11-16 18:43:31.067] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 16 | DC:8MiB | WT: 489.566 ms | TT: 29.385 s
+[2025-11-16 18:43:38.206] [info] ==> Verification Completed <==
+[2025-11-16 18:44:15.876] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 16 | DC:8MiB | WT: 1.305 s | TT: 37.650 s
+[2025-11-16 18:44:23.108] [info] ==> Verification Completed <==
+[2025-11-16 18:44:49.317] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 16 | DC:8MiB | WT: 1.005 s | TT: 26.194 s
+[2025-11-16 18:44:58.809] [info] ==> Verification Completed <==
+[2025-11-16 18:47:41.089] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 16 | DC:8MiB | WT: 17.732 s | TT: 2.704 min
+[2025-11-16 18:48:43.896] [info] ==> Verification Completed <==
+[2025-11-16 18:51:47.252] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 16 | DC:8MiB | WT: 16.199 s | TT: 3.055 min
+[2025-11-16 18:52:59.760] [info] ==> Verification Completed <==
+[2025-11-16 18:53:04.583] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 32 | DC:32MiB | WT: 73.617 ms | TT: 4.729 s
+[2025-11-16 18:53:05.986] [info] ==> Verification Completed <==
+[2025-11-16 18:53:16.762] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 32 | DC:32MiB | WT: 531.982 ms | TT: 10.769 s
+[2025-11-16 18:53:21.766] [info] ==> Verification Completed <==
+[2025-11-16 18:53:54.636] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 32 | DC:32MiB | WT: 411.290 ms | TT: 32.856 s
+[2025-11-16 18:54:01.740] [info] ==> Verification Completed <==
+[2025-11-16 18:54:34.153] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 32 | DC:32MiB | WT: 1.571 s | TT: 32.392 s
+[2025-11-16 18:54:41.415] [info] ==> Verification Completed <==
+[2025-11-16 18:55:30.941] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 32 | DC:32MiB | WT: 917.430 ms | TT: 49.509 s
+[2025-11-16 18:55:40.559] [info] ==> Verification Completed <==
+[2025-11-16 18:58:26.391] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 32 | DC:32MiB | WT: 25.592 s | TT: 2.763 min
+[2025-11-16 18:59:34.713] [info] ==> Verification Completed <==
+[2025-11-16 19:02:39.539] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 32 | DC:32MiB | WT: 29.301 s | TT: 3.079 min
+[2025-11-16 19:03:55.894] [info] ==> Verification Completed <==
+[2025-11-16 19:03:58.959] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 48 | DC:72MiB | WT: 89.556 ms | TT: 2.971 s
+[2025-11-16 19:04:00.362] [info] ==> Verification Completed <==
+[2025-11-16 19:04:11.088] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 48 | DC:72MiB | WT: 458.045 ms | TT: 10.722 s
+[2025-11-16 19:04:16.041] [info] ==> Verification Completed <==
+[2025-11-16 19:04:46.260] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 48 | DC:72MiB | WT: 477.952 ms | TT: 30.205 s
+[2025-11-16 19:04:53.298] [info] ==> Verification Completed <==
+[2025-11-16 19:05:25.475] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 48 | DC:72MiB | WT: 1.245 s | TT: 32.158 s
+[2025-11-16 19:05:32.729] [info] ==> Verification Completed <==
+[2025-11-16 19:06:18.159] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 48 | DC:72MiB | WT: 953.842 ms | TT: 45.414 s
+[2025-11-16 19:06:27.673] [info] ==> Verification Completed <==
+[2025-11-16 19:10:19.570] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 48 | DC:72MiB | WT: 18.908 s | TT: 3.865 min
+[2025-11-16 19:11:20.554] [info] ==> Verification Completed <==
+[2025-11-16 19:14:30.146] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 48 | DC:72MiB | WT: 18.963 s | TT: 3.159 min
+[2025-11-16 19:15:41.142] [info] ==> Verification Completed <==
+Starting FastFlow FARM implementation:
+
+[2025-11-16 19:15:42.921] [info] [Timer] Emitter: 934.138 ms
+[2025-11-16 19:15:42.922] [info] [Timer] Worker#0 total: 46.423 ms
+[2025-11-16 19:15:42.922] [info] [Timer] Worker#1 total: 47.453 ms
+[2025-11-16 19:15:45.213] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 2 | DC:8MiB | WT: 93.876 ms | TT: 3.966 s
+[2025-11-16 19:15:46.636] [info] ==> Verification Completed <==
+[2025-11-16 19:15:49.893] [info] [Timer] Emitter: 3.223 s
+[2025-11-16 19:15:49.895] [info] [Timer] Worker#0 total: 250.704 ms
+[2025-11-16 19:15:49.895] [info] [Timer] Worker#1 total: 254.117 ms
+[2025-11-16 19:15:55.548] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 2 | DC:8MiB | WT: 504.820 ms | TT: 8.909 s
+[2025-11-16 19:16:00.549] [info] ==> Verification Completed <==
+[2025-11-16 19:16:05.709] [info] [Timer] Emitter: 5.059 s
+[2025-11-16 19:16:05.711] [info] [Timer] Worker#0 total: 233.972 ms
+[2025-11-16 19:16:05.711] [info] [Timer] Worker#1 total: 246.349 ms
+[2025-11-16 19:16:24.836] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 2 | DC:8MiB | WT: 480.321 ms | TT: 24.272 s
+[2025-11-16 19:16:31.953] [info] ==> Verification Completed <==
+[2025-11-16 19:16:36.733] [info] [Timer] Emitter: 4.611 s
+[2025-11-16 19:16:36.734] [info] [Timer] Worker#0 total: 519.761 ms
+[2025-11-16 19:16:36.734] [info] [Timer] Worker#1 total: 542.925 ms
+[2025-11-16 19:17:04.124] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 2 | DC:8MiB | WT: 1.063 s | TT: 32.151 s
+[2025-11-16 19:17:11.470] [info] ==> Verification Completed <==
+[2025-11-16 19:17:17.501] [info] [Timer] Emitter: 5.906 s
+[2025-11-16 19:17:17.502] [info] [Timer] Worker#0 total: 494.959 ms
+[2025-11-16 19:17:17.503] [info] [Timer] Worker#1 total: 523.133 ms
+[2025-11-16 19:17:49.609] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 2 | DC:8MiB | WT: 1.018 s | TT: 38.121 s
+[2025-11-16 19:17:59.059] [info] ==> Verification Completed <==
+[2025-11-16 19:18:28.548] [info] [Timer] Emitter: 29.298 s
+[2025-11-16 19:18:28.556] [info] [Timer] Worker#0 total: 5.582 s
+[2025-11-16 19:18:28.557] [info] [Timer] Worker#1 total: 6.116 s
+[2025-11-16 19:20:20.348] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 2 | DC:8MiB | WT: 11.699 s | TT: 2.354 min
+[2025-11-16 19:21:24.207] [info] ==> Verification Completed <==
+[2025-11-16 19:21:57.140] [info] [Timer] Emitter: 32.279 s
+[2025-11-16 19:21:57.144] [info] [Timer] Worker#1 total: 5.819 s
+[2025-11-16 19:21:57.144] [info] [Timer] Worker#0 total: 5.491 s
+[2025-11-16 19:24:21.070] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 2 | DC:8MiB | WT: 11.310 s | TT: 2.946 min
+[2025-11-16 19:25:33.462] [info] ==> Verification Completed <==
+[2025-11-16 19:25:35.874] [info] [Timer] Worker#1 total: 23.159 ms
+[2025-11-16 19:25:35.874] [info] [Timer] Worker#3 total: 23.071 ms
+[2025-11-16 19:25:35.874] [info] [Timer] Worker#0 total: 44.270 ms
+[2025-11-16 19:25:35.874] [info] [Timer] Emitter: 1.532 s
+[2025-11-16 19:25:35.874] [info] [Timer] Worker#2 total: 21.210 ms
+[2025-11-16 19:25:37.449] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 4 | DC:8MiB | WT: 111.710 ms | TT: 3.898 s
+[2025-11-16 19:25:38.862] [info] ==> Verification Completed <==
+[2025-11-16 19:25:43.710] [info] [Timer] Emitter: 4.810 s
+[2025-11-16 19:25:43.711] [info] [Timer] Worker#2 total: 116.608 ms
+[2025-11-16 19:25:43.711] [info] [Timer] Worker#1 total: 124.039 ms
+[2025-11-16 19:25:43.712] [info] [Timer] Worker#3 total: 119.000 ms
+[2025-11-16 19:25:43.712] [info] [Timer] Worker#0 total: 170.227 ms
+[2025-11-16 19:25:49.812] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 4 | DC:8MiB | WT: 529.874 ms | TT: 10.944 s
+[2025-11-16 19:25:54.766] [info] ==> Verification Completed <==
+[2025-11-16 19:26:01.616] [info] [Timer] Emitter: 6.754 s
+[2025-11-16 19:26:01.622] [info] [Timer] Worker#2 total: 113.865 ms
+[2025-11-16 19:26:01.616] [info] [Timer] Worker#1 total: 123.231 ms
+[2025-11-16 19:26:01.617] [info] [Timer] Worker#3 total: 122.082 ms
+[2025-11-16 19:26:01.616] [info] [Timer] Worker#0 total: 172.421 ms
+[2025-11-16 19:26:11.365] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 4 | DC:8MiB | WT: 531.599 ms | TT: 16.585 s
+[2025-11-16 19:26:18.483] [info] ==> Verification Completed <==
+[2025-11-16 19:26:25.526] [info] [Timer] Emitter: 6.875 s
+[2025-11-16 19:26:25.526] [info] [Timer] Worker#1 total: 261.503 ms
+[2025-11-16 19:26:25.526] [info] [Timer] Worker#2 total: 242.179 ms
+[2025-11-16 19:26:25.527] [info] [Timer] Worker#3 total: 334.229 ms
+[2025-11-16 19:26:25.528] [info] [Timer] Worker#0 total: 419.290 ms
+[2025-11-16 19:26:50.927] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 4 | DC:8MiB | WT: 1.257 s | TT: 32.423 s
+[2025-11-16 19:26:58.197] [info] ==> Verification Completed <==
+[2025-11-16 19:27:07.880] [info] [Timer] Emitter: 9.563 s
+[2025-11-16 19:27:07.880] [info] [Timer] Worker#2 total: 232.071 ms
+[2025-11-16 19:27:07.880] [info] [Timer] Worker#1 total: 247.220 ms
+[2025-11-16 19:27:07.881] [info] [Timer] Worker#3 total: 243.172 ms
+[2025-11-16 19:27:07.882] [info] [Timer] Worker#0 total: 362.746 ms
+[2025-11-16 19:27:24.173] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 4 | DC:8MiB | WT: 1.085 s | TT: 25.959 s
+[2025-11-16 19:27:33.609] [info] ==> Verification Completed <==
+[2025-11-16 19:28:25.446] [info] [Timer] Emitter: 51.646 s
+[2025-11-16 19:28:25.446] [info] [Timer] Worker#0 total: 5.060 s
+[2025-11-16 19:28:25.446] [info] [Timer] Worker#1 total: 2.837 s
+[2025-11-16 19:28:25.446] [info] [Timer] Worker#2 total: 2.692 s
+[2025-11-16 19:28:25.447] [info] [Timer] Worker#3 total: 4.393 s
+[2025-11-16 19:30:28.348] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 4 | DC:8MiB | WT: 14.982 s | TT: 2.912 min
+[2025-11-16 19:31:29.934] [info] ==> Verification Completed <==
+[2025-11-16 19:32:26.739] [info] [Timer] Emitter: 56.134 s
+[2025-11-16 19:32:26.739] [info] [Timer] Worker#1 total: 2.758 s
+[2025-11-16 19:32:26.740] [info] [Timer] Worker#2 total: 2.566 s
+[2025-11-16 19:32:26.740] [info] [Timer] Worker#3 total: 4.394 s
+[2025-11-16 19:32:26.742] [info] [Timer] Worker#0 total: 4.842 s
+[2025-11-16 19:35:05.458] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 4 | DC:8MiB | WT: 14.559 s | TT: 3.591 min
+[2025-11-16 19:36:17.668] [info] ==> Verification Completed <==
+[2025-11-16 19:42:38.463] [info] [Timer] Emitter: 6.332 min
+[2025-11-16 19:42:38.464] [info] [Timer] Worker#1 total: 2.731 s
+[2025-11-16 19:42:38.464] [info] [Timer] Worker#2 total: 2.583 s
+[2025-11-16 19:42:38.465] [info] [Timer] Worker#3 total: 2.634 s
+[2025-11-16 19:42:38.467] [info] [Timer] Worker#0 total: 3.827 s
+[2025-11-16 19:53:14.052] [info] M: MEMORY_OOC | R: 100M | PS: 128 | W: 4 | DC:8MiB | WT: 11.775 s | TT: 16.938 min
+[2025-11-16 19:55:24.969] [info] ==> Verification Completed <==
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#1 total: 12.765 ms
+[2025-11-16 19:55:27.971] [info] [Timer] Emitter: 2.028 s
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#6 total: 10.094 ms
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#2 total: 15.108 ms
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#3 total: 8.825 ms
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#5 total: 15.956 ms
+[2025-11-16 19:55:27.971] [info] [Timer] Worker#7 total: 9.274 ms
+[2025-11-16 19:55:27.973] [info] [Timer] Worker#4 total: 21.156 ms
+[2025-11-16 19:55:27.973] [info] [Timer] Worker#0 total: 10.665 ms
+[2025-11-16 19:55:31.284] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 8 | DC:8MiB | WT: 103.841 ms | TT: 6.095 s
+[2025-11-16 19:55:32.718] [info] ==> Verification Completed <==
+[2025-11-16 19:55:38.704] [info] [Timer] Emitter: 5.948 s
+[2025-11-16 19:55:38.705] [info] [Timer] Worker#3 total: 47.540 ms
+[2025-11-16 19:55:38.705] [info] [Timer] Worker#5 total: 73.378 ms
+[2025-11-16 19:55:38.705] [info] [Timer] Worker#1 total: 62.223 ms
+[2025-11-16 19:55:38.705] [info] [Timer] Worker#7 total: 47.607 ms
+[2025-11-16 19:55:38.705] [info] [Timer] Worker#6 total: 75.003 ms
+[2025-11-16 19:55:38.706] [info] [Timer] Worker#0 total: 72.186 ms
+[2025-11-16 19:55:38.707] [info] [Timer] Worker#4 total: 85.705 ms
+[2025-11-16 19:55:38.707] [info] [Timer] Worker#2 total: 68.061 ms
+[2025-11-16 19:55:51.252] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 8 | DC:8MiB | WT: 531.702 ms | TT: 18.529 s
+[2025-11-16 19:55:56.271] [info] ==> Verification Completed <==
+[2025-11-16 19:56:05.924] [info] [Timer] Worker#2 total: 73.734 ms
+[2025-11-16 19:56:05.924] [info] [Timer] Worker#5 total: 66.147 ms
+[2025-11-16 19:56:05.925] [info] [Timer] Worker#7 total: 46.195 ms
+[2025-11-16 19:56:05.924] [info] [Timer] Worker#3 total: 47.399 ms
+[2025-11-16 19:56:05.925] [info] [Timer] Worker#6 total: 71.796 ms
+[2025-11-16 19:56:05.925] [info] [Timer] Emitter: 9.562 s
+[2025-11-16 19:56:05.924] [info] [Timer] Worker#1 total: 78.661 ms
+[2025-11-16 19:56:05.927] [info] [Timer] Worker#4 total: 68.496 ms
+[2025-11-16 19:56:05.927] [info] [Timer] Worker#0 total: 103.375 ms
+[2025-11-16 19:56:48.736] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 8 | DC:8MiB | WT: 555.801 ms | TT: 52.462 s
+[2025-11-16 19:56:56.301] [info] ==> Verification Completed <==
+[2025-11-16 19:57:06.068] [info] [Timer] Worker#2 total: 145.568 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#7 total: 108.711 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Emitter: 9.614 s
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#0 total: 153.556 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#5 total: 161.415 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#3 total: 110.818 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#1 total: 173.069 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#6 total: 203.505 ms
+[2025-11-16 19:57:06.069] [info] [Timer] Worker#4 total: 219.954 ms
+[2025-11-16 19:57:41.814] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 8 | DC:8MiB | WT: 1.277 s | TT: 45.510 s
+[2025-11-16 19:57:49.089] [info] ==> Verification Completed <==
+[2025-11-16 19:58:01.871] [info] [Timer] Worker#1 total: 151.785 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#7 total: 107.807 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Emitter: 12.663 s
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#6 total: 166.147 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#2 total: 140.863 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#5 total: 142.778 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#3 total: 110.482 ms
+[2025-11-16 19:58:01.872] [info] [Timer] Worker#0 total: 155.253 ms
+[2025-11-16 19:58:01.875] [info] [Timer] Worker#4 total: 152.338 ms
+[2025-11-16 19:58:41.791] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 8 | DC:8MiB | WT: 1.127 s | TT: 52.685 s
+[2025-11-16 19:58:51.123] [info] ==> Verification Completed <==
+[2025-11-16 20:00:06.510] [info] [Timer] Emitter: 1.253 min
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#1 total: 1.841 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#5 total: 1.881 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#4 total: 1.898 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#6 total: 1.779 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#3 total: 1.352 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#2 total: 1.704 s
+[2025-11-16 20:00:06.510] [info] [Timer] Worker#7 total: 1.321 s
+[2025-11-16 20:00:06.511] [info] [Timer] Worker#0 total: 1.979 s
+[2025-11-16 20:02:21.951] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 8 | DC:8MiB | WT: 13.755 s | TT: 3.513 min
+[2025-11-16 20:03:29.328] [info] ==> Verification Completed <==
+[2025-11-16 20:04:49.932] [info] [Timer] Emitter: 1.334 min
+[2025-11-16 20:04:49.932] [info] [Timer] Worker#4 total: 2.056 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#5 total: 2.020 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#1 total: 1.908 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#6 total: 1.716 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#2 total: 1.746 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#0 total: 2.000 s
+[2025-11-16 20:04:49.934] [info] [Timer] Worker#3 total: 1.509 s
+[2025-11-16 20:04:49.933] [info] [Timer] Worker#7 total: 1.446 s
+[2025-11-16 20:07:42.596] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 8 | DC:8MiB | WT: 14.402 s | TT: 4.220 min
+[2025-11-16 20:08:52.200] [info] ==> Verification Completed <==
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#2 total: 3.705 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#11 total: 3.767 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#5 total: 12.909 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Emitter: 3.189 s
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#9 total: 12.884 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#7 total: 3.782 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#13 total: 3.870 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#1 total: 3.894 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#15 total: 3.914 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#3 total: 3.805 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#14 total: 12.407 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#10 total: 15.458 ms
+[2025-11-16 20:08:56.199] [info] [Timer] Worker#6 total: 3.679 ms
+[2025-11-16 20:08:56.202] [info] [Timer] Worker#12 total: 3.716 ms
+[2025-11-16 20:08:56.202] [info] [Timer] Worker#4 total: 15.714 ms
+[2025-11-16 20:08:56.202] [info] [Timer] Worker#0 total: 3.668 ms
+[2025-11-16 20:08:56.202] [info] [Timer] Worker#8 total: 3.738 ms
+[2025-11-16 20:08:57.973] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 16 | DC:8MiB | WT: 110.909 ms | TT: 5.683 s
+[2025-11-16 20:08:59.381] [info] ==> Verification Completed <==
+[2025-11-16 20:09:09.514] [info] [Timer] Emitter: 10.098 s
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#6 total: 29.145 ms
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#1 total: 23.926 ms
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#15 total: 20.731 ms
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#8 total: 20.105 ms
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#10 total: 38.088 ms
+[2025-11-16 20:09:09.514] [info] [Timer] Worker#0 total: 20.747 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#7 total: 20.162 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#2 total: 28.248 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#11 total: 20.312 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#13 total: 54.118 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#9 total: 21.479 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#3 total: 20.104 ms
+[2025-11-16 20:09:09.515] [info] [Timer] Worker#5 total: 47.193 ms
+[2025-11-16 20:09:09.517] [info] [Timer] Worker#4 total: 31.914 ms
+[2025-11-16 20:09:09.517] [info] [Timer] Worker#12 total: 68.176 ms
+[2025-11-16 20:09:09.517] [info] [Timer] Worker#14 total: 42.232 ms
+[2025-11-16 20:09:17.087] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 16 | DC:8MiB | WT: 506.680 ms | TT: 17.700 s
+[2025-11-16 20:09:22.039] [info] ==> Verification Completed <==
+[2025-11-16 20:09:36.882] [info] [Timer] Emitter: 14.745 s
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#2 total: 18.507 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#14 total: 42.601 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#15 total: 18.506 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#6 total: 27.576 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#10 total: 34.331 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#7 total: 18.628 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#11 total: 23.396 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#13 total: 40.466 ms
+[2025-11-16 20:09:36.882] [info] [Timer] Worker#3 total: 18.344 ms
+[2025-11-16 20:09:36.883] [info] [Timer] Worker#9 total: 55.914 ms
+[2025-11-16 20:09:36.883] [info] [Timer] Worker#5 total: 28.401 ms
+[2025-11-16 20:09:36.883] [info] [Timer] Worker#1 total: 47.386 ms
+[2025-11-16 20:09:36.884] [info] [Timer] Worker#12 total: 30.479 ms
+[2025-11-16 20:09:36.884] [info] [Timer] Worker#0 total: 43.022 ms
+[2025-11-16 20:09:36.884] [info] [Timer] Worker#4 total: 18.540 ms
+[2025-11-16 20:09:36.884] [info] [Timer] Worker#8 total: 30.530 ms
+[2025-11-16 20:09:55.646] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 16 | DC:8MiB | WT: 496.628 ms | TT: 33.595 s
+[2025-11-16 20:10:02.658] [info] ==> Verification Completed <==
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#9 total: 80.019 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#3 total: 47.901 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#2 total: 69.371 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#6 total: 72.556 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#15 total: 53.053 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#13 total: 90.081 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Emitter: 16.162 s
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#10 total: 61.260 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#14 total: 70.019 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#1 total: 62.773 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#11 total: 55.949 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#7 total: 53.805 ms
+[2025-11-16 20:10:18.986] [info] [Timer] Worker#5 total: 107.135 ms
+[2025-11-16 20:10:18.987] [info] [Timer] Worker#12 total: 116.528 ms
+[2025-11-16 20:10:18.987] [info] [Timer] Worker#8 total: 71.595 ms
+[2025-11-16 20:10:18.987] [info] [Timer] Worker#4 total: 109.341 ms
+[2025-11-16 20:10:18.988] [info] [Timer] Worker#0 total: 66.571 ms
+[2025-11-16 20:10:31.034] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 16 | DC:8MiB | WT: 1.188 s | TT: 28.357 s
+[2025-11-16 20:10:38.212] [info] ==> Verification Completed <==
+[2025-11-16 20:10:58.518] [info] [Timer] Worker#14 total: 76.830 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#0 total: 63.838 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#11 total: 40.699 ms
+[2025-11-16 20:10:58.518] [info] [Timer] Worker#12 total: 39.710 ms
+[2025-11-16 20:10:58.518] [info] [Timer] Worker#13 total: 96.568 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#9 total: 95.904 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#7 total: 40.644 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#15 total: 41.426 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#1 total: 69.153 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#5 total: 87.062 ms
+[2025-11-16 20:10:58.518] [info] [Timer] Emitter: 20.187 s
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#3 total: 46.207 ms
+[2025-11-16 20:10:58.519] [info] [Timer] Worker#2 total: 76.935 ms
+[2025-11-16 20:10:58.520] [info] [Timer] Worker#10 total: 112.104 ms
+[2025-11-16 20:10:58.520] [info] [Timer] Worker#6 total: 57.905 ms
+[2025-11-16 20:10:58.522] [info] [Timer] Worker#4 total: 87.559 ms
+[2025-11-16 20:10:58.522] [info] [Timer] Worker#8 total: 87.944 ms
+[2025-11-16 20:11:20.183] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 16 | DC:8MiB | WT: 1.120 s | TT: 41.956 s
+[2025-11-16 20:11:29.624] [info] ==> Verification Completed <==
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#13 total: 874.523 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Emitter: 2.069 min
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#1 total: 965.707 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#10 total: 909.515 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#2 total: 780.776 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#3 total: 533.423 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#5 total: 918.435 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#14 total: 704.400 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#11 total: 507.318 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#9 total: 856.600 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#7 total: 504.443 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#15 total: 524.701 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#6 total: 856.841 ms
+[2025-11-16 20:13:33.959] [info] [Timer] Worker#0 total: 826.553 ms
+[2025-11-16 20:13:33.962] [info] [Timer] Worker#12 total: 789.834 ms
+[2025-11-16 20:13:33.962] [info] [Timer] Worker#4 total: 771.516 ms
+[2025-11-16 20:13:33.962] [info] [Timer] Worker#8 total: 890.984 ms
+[2025-11-16 20:15:37.644] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 16 | DC:8MiB | WT: 12.216 s | TT: 4.133 min
+[2025-11-16 20:16:38.270] [info] ==> Verification Completed <==
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#13 total: 769.367 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#8 total: 878.655 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#6 total: 889.422 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#10 total: 825.595 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#4 total: 785.319 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Emitter: 2.249 min
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#2 total: 877.496 ms
+[2025-11-16 20:18:53.882] [info] [Timer] Worker#0 total: 926.653 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#12 total: 862.920 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#14 total: 851.224 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#11 total: 514.527 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#7 total: 511.964 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#15 total: 505.216 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#3 total: 526.309 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#5 total: 864.942 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#1 total: 827.449 ms
+[2025-11-16 20:18:53.879] [info] [Timer] Worker#9 total: 840.239 ms
+[2025-11-16 20:21:27.545] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 16 | DC:8MiB | WT: 12.257 s | TT: 4.820 min
+[2025-11-16 20:22:38.824] [info] ==> Verification Completed <==
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#6 total: 1.854 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#28 total: 1.868 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#3 total: 1.817 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#15 total: 1.822 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#21 total: 1.819 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#13 total: 1.886 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#17 total: 1.976 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#23 total: 1.839 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#29 total: 1.861 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#30 total: 1.840 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#14 total: 1.908 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#11 total: 1.852 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#31 total: 1.821 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#2 total: 1.924 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Emitter: 5.553 s
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#9 total: 1.953 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#22 total: 7.776 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#7 total: 1.816 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#18 total: 1.849 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#27 total: 1.815 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#10 total: 1.853 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#26 total: 1.865 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#1 total: 1.874 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#25 total: 1.834 ms
+[2025-11-16 20:22:45.226] [info] [Timer] Worker#5 total: 2.707 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#8 total: 1.886 ms
+[2025-11-16 20:22:45.224] [info] [Timer] Worker#12 total: 49.888 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#16 total: 1.853 ms
+[2025-11-16 20:22:45.225] [info] [Timer] Worker#19 total: 1.777 ms
+[2025-11-16 20:22:45.227] [info] [Timer] Worker#0 total: 1.813 ms
+[2025-11-16 20:22:45.227] [info] [Timer] Worker#4 total: 1.807 ms
+[2025-11-16 20:22:45.227] [info] [Timer] Worker#20 total: 1.880 ms
+[2025-11-16 20:22:45.228] [info] [Timer] Worker#24 total: 1.853 ms
+[2025-11-16 20:22:47.407] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 32 | DC:32MiB | WT: 114.185 ms | TT: 8.494 s
+[2025-11-16 20:22:48.794] [info] ==> Verification Completed <==
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#17 total: 52.255 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#14 total: 31.065 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#8 total: 9.910 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#29 total: 10.399 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#20 total: 10.511 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#23 total: 10.187 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Emitter: 18.146 s
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#0 total: 85.501 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#21 total: 31.206 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#15 total: 10.144 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#4 total: 34.069 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#13 total: 35.543 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#11 total: 10.511 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#6 total: 10.038 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#9 total: 10.028 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#31 total: 11.043 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#5 total: 10.608 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#2 total: 10.023 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#7 total: 10.237 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#28 total: 9.963 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#24 total: 10.474 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#10 total: 10.062 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#1 total: 10.225 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#26 total: 10.038 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#19 total: 10.636 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#3 total: 11.805 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#18 total: 28.120 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#27 total: 10.094 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#22 total: 9.990 ms
+[2025-11-16 20:23:06.975] [info] [Timer] Worker#30 total: 10.037 ms
+[2025-11-16 20:23:06.976] [info] [Timer] Worker#12 total: 10.029 ms
+[2025-11-16 20:23:06.977] [info] [Timer] Worker#25 total: 31.206 ms
+[2025-11-16 20:23:06.979] [info] [Timer] Worker#16 total: 12.443 ms
+[2025-11-16 20:23:11.816] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 32 | DC:32MiB | WT: 578.401 ms | TT: 23.017 s
+[2025-11-16 20:23:16.706] [info] ==> Verification Completed <==
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#10 total: 30.355 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#7 total: 9.221 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#13 total: 9.546 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#20 total: 9.299 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#17 total: 9.569 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#19 total: 9.452 ms
+[2025-11-16 20:23:43.254] [info] [Timer] Worker#16 total: 9.938 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#24 total: 9.275 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#5 total: 30.585 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#27 total: 9.471 ms
+[2025-11-16 20:23:43.254] [info] [Timer] Worker#28 total: 34.813 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#4 total: 33.360 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#21 total: 9.415 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#23 total: 9.274 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#29 total: 9.473 ms
+[2025-11-16 20:23:43.254] [info] [Timer] Worker#8 total: 9.323 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#2 total: 50.604 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Emitter: 26.458 s
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#25 total: 9.604 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#30 total: 9.588 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#31 total: 9.342 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#9 total: 9.434 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#14 total: 9.316 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#1 total: 9.547 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#11 total: 9.476 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#3 total: 9.306 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#18 total: 9.306 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#6 total: 51.257 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#22 total: 9.306 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#26 total: 9.263 ms
+[2025-11-16 20:23:43.253] [info] [Timer] Worker#15 total: 9.355 ms
+[2025-11-16 20:23:43.256] [info] [Timer] Worker#12 total: 9.215 ms
+[2025-11-16 20:23:43.256] [info] [Timer] Worker#0 total: 33.213 ms
+[2025-11-16 20:23:53.564] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 32 | DC:32MiB | WT: 499.504 ms | TT: 36.853 s
+[2025-11-16 20:24:00.563] [info] ==> Verification Completed <==
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#8 total: 21.247 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#22 total: 42.593 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#7 total: 27.123 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#5 total: 64.149 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#23 total: 22.754 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#12 total: 21.537 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#25 total: 22.031 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#0 total: 21.418 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#31 total: 21.655 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#3 total: 22.013 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#17 total: 65.241 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#28 total: 50.968 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#13 total: 40.239 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#21 total: 78.273 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#29 total: 108.146 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#20 total: 93.354 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#11 total: 22.954 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#1 total: 22.067 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Emitter: 28.890 s
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#15 total: 21.436 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#16 total: 69.314 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#9 total: 42.897 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#27 total: 21.896 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#4 total: 72.522 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#19 total: 21.644 ms
+[2025-11-16 20:24:29.604] [info] [Timer] Worker#24 total: 70.707 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#30 total: 62.619 ms
+[2025-11-16 20:24:29.603] [info] [Timer] Worker#6 total: 42.574 ms
+[2025-11-16 20:24:29.605] [info] [Timer] Worker#14 total: 63.378 ms
+[2025-11-16 20:24:29.605] [info] [Timer] Worker#10 total: 63.560 ms
+[2025-11-16 20:24:29.605] [info] [Timer] Worker#18 total: 21.381 ms
+[2025-11-16 20:24:29.605] [info] [Timer] Worker#26 total: 21.454 ms
+[2025-11-16 20:24:29.605] [info] [Timer] Worker#2 total: 63.467 ms
+[2025-11-16 20:24:40.784] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 32 | DC:32MiB | WT: 1.427 s | TT: 40.218 s
+[2025-11-16 20:24:48.020] [info] ==> Verification Completed <==
+[2025-11-16 20:25:24.276] [info] [Timer] Worker#13 total: 64.653 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#15 total: 20.350 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#24 total: 20.847 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#14 total: 41.053 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#3 total: 21.591 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#10 total: 20.007 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#17 total: 20.625 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#30 total: 68.038 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#27 total: 26.527 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#5 total: 20.687 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#26 total: 19.948 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#23 total: 20.247 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#21 total: 20.752 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#6 total: 82.947 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#18 total: 20.109 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#31 total: 21.304 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#2 total: 40.965 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#7 total: 20.297 ms
+[2025-11-16 20:25:24.278] [info] [Timer] Worker#25 total: 41.740 ms
+[2025-11-16 20:25:24.278] [info] [Timer] Worker#19 total: 21.750 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#22 total: 47.992 ms
+[2025-11-16 20:25:24.277] [info] [Timer] Worker#1 total: 62.706 ms
+[2025-11-16 20:25:24.278] [info] [Timer] Worker#11 total: 20.332 ms
+[2025-11-16 20:25:24.278] [info] [Timer] Worker#9 total: 20.472 ms
+[2025-11-16 20:25:24.278] [info] [Timer] Worker#29 total: 41.542 ms
+[2025-11-16 20:25:24.280] [info] [Timer] Worker#12 total: 43.868 ms
+[2025-11-16 20:25:24.280] [info] [Timer] Worker#0 total: 142.463 ms
+[2025-11-16 20:25:24.280] [info] [Timer] Worker#28 total: 19.790 ms
+[2025-11-16 20:25:24.281] [info] [Timer] Worker#20 total: 22.068 ms
+[2025-11-16 20:25:24.281] [info] [Timer] Worker#4 total: 19.822 ms
+[2025-11-16 20:25:24.281] [info] [Timer] Emitter: 36.137 s
+[2025-11-16 20:25:24.281] [info] [Timer] Worker#16 total: 19.927 ms
+[2025-11-16 20:25:24.281] [info] [Timer] Worker#8 total: 43.928 ms
+[2025-11-16 20:25:40.112] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 32 | DC:32MiB | WT: 1.139 s | TT: 52.077 s
+[2025-11-16 20:25:49.567] [info] ==> Verification Completed <==
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#25 total: 476.793 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#6 total: 527.632 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#12 total: 329.702 ms
+[2025-11-16 20:29:52.186] [info] [Timer] Worker#20 total: 451.741 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Emitter: 4.040 min
+[2025-11-16 20:29:52.186] [info] [Timer] Worker#16 total: 502.040 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#26 total: 400.161 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#4 total: 474.652 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#18 total: 448.045 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#24 total: 593.916 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#2 total: 476.854 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#8 total: 500.933 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#30 total: 424.348 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#10 total: 427.236 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#28 total: 380.679 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#14 total: 483.369 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#22 total: 450.338 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#23 total: 265.043 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#3 total: 245.314 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#31 total: 272.563 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#19 total: 238.772 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#15 total: 282.347 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#5 total: 538.914 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#27 total: 247.106 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#11 total: 245.999 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#9 total: 449.210 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#7 total: 244.159 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#21 total: 406.733 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#17 total: 399.067 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#13 total: 375.296 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#29 total: 530.947 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#1 total: 427.906 ms
+[2025-11-16 20:29:52.184] [info] [Timer] Worker#0 total: 456.419 ms
+[2025-11-16 20:31:57.837] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 32 | DC:32MiB | WT: 12.974 s | TT: 6.137 min
+[2025-11-16 20:33:05.758] [info] ==> Verification Completed <==
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#2 total: 453.827 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#25 total: 445.628 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Emitter: 4.205 min
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#13 total: 434.283 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#4 total: 403.557 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#29 total: 333.775 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#16 total: 444.632 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#9 total: 582.213 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#21 total: 535.224 ms
+[2025-11-16 20:37:18.629] [info] [Timer] Worker#8 total: 446.358 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#17 total: 428.918 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#1 total: 634.581 ms
+[2025-11-16 20:37:18.629] [info] [Timer] Worker#12 total: 427.827 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#5 total: 315.331 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#11 total: 242.129 ms
+[2025-11-16 20:37:18.629] [info] [Timer] Worker#24 total: 393.172 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#7 total: 275.901 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#30 total: 393.469 ms
+[2025-11-16 20:37:18.629] [info] [Timer] Worker#0 total: 492.573 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#14 total: 335.404 ms
+[2025-11-16 20:37:18.629] [info] [Timer] Worker#28 total: 422.865 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#19 total: 280.395 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#3 total: 274.636 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#26 total: 451.587 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#15 total: 282.615 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#10 total: 526.031 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#6 total: 503.449 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#22 total: 426.453 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#18 total: 524.464 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#20 total: 418.598 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#27 total: 251.431 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#23 total: 253.612 ms
+[2025-11-16 20:37:18.627] [info] [Timer] Worker#31 total: 288.041 ms
+[2025-11-16 20:39:49.560] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 32 | DC:32MiB | WT: 12.923 s | TT: 6.729 min
+[2025-11-16 20:41:04.514] [info] ==> Verification Completed <==
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#37 total: 1.331 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#47 total: 1.209 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#46 total: 1.203 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#28 total: 1.200 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#43 total: 1.213 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#0 total: 1.198 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#38 total: 1.198 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#27 total: 1.192 ms
+[2025-11-16 20:41:12.973] [info] [Timer] Worker#8 total: 1.198 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#4 total: 1.204 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#18 total: 1.202 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#39 total: 1.209 ms
+[2025-11-16 20:41:12.974] [info] [Timer] Worker#44 total: 1.199 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#32 total: 1.198 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#30 total: 1.222 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#15 total: 1.272 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#5 total: 1.222 ms
+[2025-11-16 20:41:12.974] [info] [Timer] Worker#40 total: 1.201 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#24 total: 1.245 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#2 total: 1.224 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#11 total: 1.209 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#13 total: 1.239 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#36 total: 37.207 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#26 total: 1.209 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#7 total: 1.205 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#45 total: 1.229 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#20 total: 1.193 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#6 total: 1.213 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#1 total: 1.196 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#31 total: 1.201 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Emitter: 7.698 s
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#10 total: 1.194 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#9 total: 1.219 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#19 total: 1.288 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#22 total: 1.201 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#42 total: 1.203 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#29 total: 1.228 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#3 total: 1.246 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#34 total: 1.193 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#41 total: 1.232 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#23 total: 1.207 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#14 total: 34.211 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#25 total: 1.217 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#35 total: 1.280 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#21 total: 1.256 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#17 total: 1.269 ms
+[2025-11-16 20:41:12.972] [info] [Timer] Worker#33 total: 1.231 ms
+[2025-11-16 20:41:12.976] [info] [Timer] Worker#12 total: 1.189 ms
+[2025-11-16 20:41:12.976] [info] [Timer] Worker#16 total: 1.206 ms
+[2025-11-16 20:41:14.009] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 48 | DC:72MiB | WT: 127.510 ms | TT: 9.404 s
+[2025-11-16 20:41:15.385] [info] ==> Verification Completed <==
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#44 total: 40.059 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#18 total: 6.623 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#5 total: 6.745 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#7 total: 6.695 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#33 total: 6.812 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#35 total: 6.625 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#31 total: 6.780 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#1 total: 6.828 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#17 total: 6.797 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#36 total: 7.263 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#3 total: 6.686 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#39 total: 9.284 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#45 total: 39.989 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#19 total: 6.774 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#21 total: 6.861 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#40 total: 6.612 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#37 total: 39.855 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#16 total: 44.774 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#43 total: 6.752 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#4 total: 6.968 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#29 total: 6.910 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#15 total: 6.815 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#12 total: 43.117 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Emitter: 25.215 s
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#20 total: 6.676 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#9 total: 6.829 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#27 total: 6.695 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#24 total: 6.891 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#41 total: 6.842 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#23 total: 6.701 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#32 total: 6.718 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#13 total: 6.720 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#11 total: 6.721 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#25 total: 6.842 ms
+[2025-11-16 20:41:40.637] [info] [Timer] Worker#47 total: 6.766 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#14 total: 6.667 ms
+[2025-11-16 20:41:40.636] [info] [Timer] Worker#42 total: 6.646 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#38 total: 9.485 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#30 total: 6.673 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#22 total: 6.686 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#26 total: 43.654 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#10 total: 42.700 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#34 total: 6.611 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#46 total: 6.618 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#6 total: 6.633 ms
+[2025-11-16 20:41:40.638] [info] [Timer] Worker#2 total: 6.564 ms
+[2025-11-16 20:41:40.640] [info] [Timer] Worker#28 total: 7.142 ms
+[2025-11-16 20:41:40.640] [info] [Timer] Worker#8 total: 7.221 ms
+[2025-11-16 20:41:40.640] [info] [Timer] Worker#0 total: 6.621 ms
+[2025-11-16 20:41:45.501] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 48 | DC:72MiB | WT: 576.947 ms | TT: 30.111 s
+[2025-11-16 20:41:50.340] [info] ==> Verification Completed <==
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#30 total: 6.262 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#28 total: 6.177 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#20 total: 6.257 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#32 total: 6.214 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#0 total: 6.274 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#12 total: 6.155 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#40 total: 6.199 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#36 total: 6.206 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#3 total: 7.132 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#4 total: 6.144 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Emitter: 36.409 s
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#16 total: 6.210 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#24 total: 6.145 ms
+[2025-11-16 20:42:26.848] [info] [Timer] Worker#18 total: 6.253 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#11 total: 6.329 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#35 total: 6.175 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#15 total: 6.402 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#47 total: 6.950 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#27 total: 6.286 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#23 total: 6.380 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#7 total: 6.240 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#19 total: 6.047 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#39 total: 6.172 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#31 total: 6.162 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#41 total: 6.256 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#43 total: 6.154 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#9 total: 6.325 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#37 total: 6.308 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#25 total: 15.285 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#45 total: 6.160 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#33 total: 6.340 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#5 total: 36.212 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#1 total: 6.239 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#17 total: 66.678 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#21 total: 6.237 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#13 total: 6.342 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#29 total: 6.311 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#44 total: 42.192 ms
+[2025-11-16 20:42:26.849] [info] [Timer] Worker#8 total: 6.206 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#46 total: 6.172 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#38 total: 6.192 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#14 total: 6.237 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#6 total: 6.229 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#10 total: 8.390 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#42 total: 6.219 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#2 total: 37.464 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#26 total: 6.197 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#22 total: 6.252 ms
+[2025-11-16 20:42:26.850] [info] [Timer] Worker#34 total: 6.320 ms
+[2025-11-16 20:42:38.850] [info] M: IN-MEMORY | R: 5M | PS: 256 | W: 48 | DC:72MiB | WT: 469.687 ms | TT: 48.496 s
+[2025-11-16 20:42:47.982] [info] ==> Verification Completed <==
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#47 total: 14.832 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#18 total: 18.747 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#1 total: 14.425 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#3 total: 14.612 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#34 total: 92.150 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#31 total: 14.401 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#38 total: 14.583 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Emitter: 44.577 s
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#30 total: 14.461 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#7 total: 14.798 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#14 total: 14.580 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#39 total: 15.969 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#11 total: 14.446 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#15 total: 14.705 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#23 total: 14.564 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#27 total: 14.534 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#19 total: 14.396 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#43 total: 14.480 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#4 total: 14.707 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#9 total: 14.584 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#2 total: 14.578 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#32 total: 14.525 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#22 total: 56.551 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#5 total: 14.542 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#17 total: 14.443 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#45 total: 14.641 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#37 total: 14.651 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#13 total: 14.606 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#29 total: 14.557 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#33 total: 14.683 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#42 total: 79.529 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#26 total: 14.573 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#10 total: 14.468 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#6 total: 14.649 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#25 total: 14.535 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#46 total: 48.580 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#41 total: 47.477 ms
+[2025-11-16 20:43:32.821] [info] [Timer] Worker#35 total: 14.393 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#21 total: 14.634 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#36 total: 14.568 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#28 total: 86.456 ms
+[2025-11-16 20:43:32.820] [info] [Timer] Worker#44 total: 50.783 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#8 total: 14.401 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#12 total: 51.010 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#20 total: 53.322 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#24 total: 15.576 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#16 total: 53.752 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#40 total: 14.513 ms
+[2025-11-16 20:43:32.825] [info] [Timer] Worker#0 total: 14.410 ms
+[2025-11-16 20:43:44.761] [info] M: IN-MEMORY | R: 10M | PS: 64 | W: 48 | DC:72MiB | WT: 1.179 s | TT: 56.750 s
+[2025-11-16 20:43:52.516] [info] ==> Verification Completed <==
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#32 total: 13.393 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#14 total: 61.188 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#46 total: 13.477 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#18 total: 46.356 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#10 total: 13.273 ms
+[2025-11-16 20:44:45.664] [info] [Timer] Worker#26 total: 46.369 ms
+[2025-11-16 20:44:45.664] [info] [Timer] Worker#34 total: 13.300 ms
+[2025-11-16 20:44:45.664] [info] [Timer] Worker#6 total: 13.371 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#21 total: 13.654 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#27 total: 13.658 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#17 total: 47.571 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#41 total: 113.692 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#3 total: 13.554 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#37 total: 13.768 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#47 total: 13.632 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#42 total: 13.376 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#35 total: 14.279 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#13 total: 13.778 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#7 total: 13.598 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#29 total: 46.990 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#15 total: 13.609 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#1 total: 49.762 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#33 total: 49.859 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#43 total: 13.725 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#23 total: 13.631 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#4 total: 85.331 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Emitter: 53.020 s
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#24 total: 13.375 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#16 total: 13.364 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#31 total: 14.520 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#20 total: 13.524 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#39 total: 13.504 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#28 total: 13.474 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#11 total: 13.549 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#44 total: 13.292 ms
+[2025-11-16 20:44:45.666] [info] [Timer] Worker#19 total: 16.680 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#22 total: 13.429 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#36 total: 86.290 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#2 total: 46.475 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#0 total: 13.321 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#12 total: 13.332 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#8 total: 13.933 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#30 total: 45.334 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#9 total: 46.150 ms
+[2025-11-16 20:44:45.665] [info] [Timer] Worker#45 total: 13.446 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#25 total: 52.804 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#5 total: 13.573 ms
+[2025-11-16 20:44:45.662] [info] [Timer] Worker#38 total: 13.437 ms
+[2025-11-16 20:44:45.663] [info] [Timer] Worker#40 total: 13.687 ms
+[2025-11-16 20:45:02.469] [info] M: IN-MEMORY | R: 10M | PS: 128 | W: 48 | DC:72MiB | WT: 1.289 s | TT: 1.166 min
+[2025-11-16 20:45:11.991] [info] ==> Verification Completed <==
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#7 total: 170.150 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#1 total: 328.418 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#39 total: 161.479 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#43 total: 160.331 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#3 total: 161.479 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#47 total: 161.262 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#23 total: 159.076 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Emitter: 6.231 min
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#11 total: 164.596 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#35 total: 178.621 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#19 total: 175.587 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#15 total: 160.606 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#27 total: 158.099 ms
+[2025-11-16 20:51:26.041] [info] [Timer] Worker#31 total: 175.393 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#28 total: 335.383 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#6 total: 296.631 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#9 total: 252.148 ms
+[2025-11-16 20:51:26.043] [info] [Timer] Worker#0 total: 303.190 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#24 total: 354.827 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#18 total: 251.805 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#25 total: 351.513 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#4 total: 302.535 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#26 total: 291.969 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#17 total: 394.441 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#16 total: 195.046 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#22 total: 295.457 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#5 total: 273.467 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#40 total: 374.218 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#42 total: 190.242 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#13 total: 404.784 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#36 total: 264.275 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#38 total: 191.971 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#41 total: 329.893 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#12 total: 229.705 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#14 total: 262.479 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#32 total: 230.713 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#33 total: 322.880 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#20 total: 306.997 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#46 total: 268.035 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#29 total: 325.586 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#30 total: 324.840 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#8 total: 335.635 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#37 total: 227.909 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#10 total: 410.889 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#21 total: 354.293 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#2 total: 263.328 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#45 total: 260.499 ms
+[2025-11-16 20:51:26.040] [info] [Timer] Worker#34 total: 439.017 ms
+[2025-11-16 20:51:26.043] [info] [Timer] Worker#44 total: 265.342 ms
+[2025-11-16 20:53:37.141] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 48 | DC:72MiB | WT: 12.797 s | TT: 8.419 min
+[2025-11-16 20:54:42.009] [info] ==> Verification Completed <==
+[2025-11-16 21:01:22.340] [info] [Timer] Emitter: 6.661 min
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#5 total: 485.314 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#16 total: 323.512 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#21 total: 518.891 ms
+[2025-11-16 21:01:22.343] [info] [Timer] Worker#8 total: 332.944 ms
+[2025-11-16 21:01:22.343] [info] [Timer] Worker#0 total: 223.903 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#24 total: 182.547 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#30 total: 410.031 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#37 total: 185.291 ms
+[2025-11-16 21:01:22.343] [info] [Timer] Worker#20 total: 339.502 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#28 total: 260.457 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#38 total: 286.571 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#7 total: 163.328 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#9 total: 221.267 ms
+[2025-11-16 21:01:22.343] [info] [Timer] Worker#32 total: 296.972 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#40 total: 332.224 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#18 total: 347.780 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#35 total: 154.143 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#33 total: 388.611 ms
+[2025-11-16 21:01:22.344] [info] [Timer] Worker#36 total: 476.049 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#12 total: 262.629 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#34 total: 249.184 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#47 total: 166.197 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#25 total: 419.723 ms
+[2025-11-16 21:01:22.344] [info] [Timer] Worker#4 total: 262.504 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#46 total: 206.197 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#19 total: 155.235 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#45 total: 185.313 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#42 total: 253.043 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#17 total: 285.193 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#10 total: 240.567 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#1 total: 212.762 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#39 total: 154.398 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#2 total: 222.182 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#13 total: 284.427 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#43 total: 153.264 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#14 total: 326.428 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#41 total: 286.719 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#23 total: 151.897 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#26 total: 249.776 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#29 total: 284.998 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#15 total: 152.889 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#22 total: 309.505 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#6 total: 324.175 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#27 total: 175.197 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#3 total: 152.050 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#11 total: 168.911 ms
+[2025-11-16 21:01:22.341] [info] [Timer] Worker#31 total: 152.306 ms
+[2025-11-16 21:01:22.340] [info] [Timer] Worker#44 total: 224.228 ms
+[2025-11-16 21:03:47.030] [info] M: IN-MEMORY | R: 100M | PS: 32 | W: 48 | DC:72MiB | WT: 12.601 s | TT: 9.082 min
+[2025-11-16 21:04:58.665] [info] ==> Verification Completed <==
+All steps completed at domenica, novembre 16, 2025 - 09:04:58 

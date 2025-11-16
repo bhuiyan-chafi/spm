@@ -7,7 +7,7 @@ INCLUDES += -I../include/ -I../include/test/ -I../include/spdlog/include
 LINKS ?=
 
 # Default target
-all: generator sequential openmp farm mpiff verify
+all: generator sequential openmp farm mpiff verify reader
  
 # --- data_generator ---
 generator: LINKS += ../include/main.cpp ./generator.cpp
@@ -20,13 +20,6 @@ sequential: LINKS += ../include/test/main_test.cpp ./sequential.cpp
 sequential: INCLUDES = -I../include/test/ -I../include/spdlog/include -I../util/ -I../include/fastflow/
 sequential:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./sequential
-
-# --- openmpv1 ---
-openmpv1: FLAGS += -fopenmp -pthread -ffast-math
-openmpv1: INCLUDES += -I../util/ -I../include/fastflow/
-openmpv1: LINKS += ../include/main.cpp ./openmpv1.cpp
-openmpv1:
-	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./openmpv1
 
 # --- openmp ---
 openmp: FLAGS += -fopenmp -pthread -ffast-math
@@ -56,8 +49,14 @@ verify: LINKS += ../include/main.cpp ./verify.cpp
 verify:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./verify
 
+# --- reader ---
+reader: INCLUDES += -I../include/fastflow/ -I../util/
+reader: LINKS += ../include/main.cpp
+reader:
+	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) ./reader.cpp -o ./reader
+
 # --- clean ---
 .PHONY: clean
 clean:
-	rm -rf generator ./sequential ./openmp ./farm ./mpiff ./verify
+	rm -rf ./generator ./sequential ./openmp ./farm ./mpiff ./verify ./reader
 	
