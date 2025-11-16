@@ -55,7 +55,7 @@ echo -e "Starting Sequential implementation:\n" >> logs/run_$ts.txt 2>&1
     ./sequential 10M 128 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
     ./verify ../data/rec_10M_128.bin >> logs/run_$ts.txt 2>&1
 
-    ./sequential 100M 16 1 $MEMORY_CAP4 >> logs/run_$ts.txt 2>&1
+    ./sequential 100M 16 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
     ./verify ../data/rec_100M_16.bin >> logs/run_$ts.txt 2>&1
 
     ./sequential 100M 32 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
