@@ -60,9 +60,6 @@ echo -e "Starting Sequential implementation:\n" >> logs/run_$ts.txt 2>&1
 
     ./sequential 100M 32 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
     ./verify ../data/rec_100M_32.bin >> logs/run_$ts.txt 2>&1
-
-    ./sequential 100M 128 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-    ./verify ../data/rec_100M_128.bin >> logs/run_$ts.txt 2>&1
 }
 echo -e "Starting OpenMP implementation:\n" >> logs/run_$ts.txt 2>&1
 {
@@ -87,11 +84,6 @@ echo -e "Starting OpenMP implementation:\n" >> logs/run_$ts.txt 2>&1
 
         ./openmp 100M 32 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
         ./verify ../data/rec_100M_32.bin >> logs/run_$ts.txt 2>&1
-
-        if [ $WORKERS -eq 4 ]; then
-            ./openmp 100M 128 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-            ./verify ../data/rec_100M_128.bin >> logs/run_$ts.txt 2>&1
-        fi
     done
 }
 
@@ -118,11 +110,6 @@ echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_$ts.txt 2>&1
 
         ./farm 100M 32 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
         ./verify ../data/rec_100M_32.bin >> logs/run_$ts.txt 2>&1
-
-        if [ $WORKERS -eq 4 ]; then
-            ./farm 100M 128 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-            ./verify ../data/rec_100M_128.bin >> logs/run_$ts.txt 2>&1
-        fi
     done
 }
 
