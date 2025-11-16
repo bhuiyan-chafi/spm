@@ -249,7 +249,15 @@ int main(int argc, char *argv[])
             // spdlog::error("==X ABORTED: Total Number of RECORDs don't match X==");
             return EXIT_FAILURE;
         }
-        const int WORKERS = ff_numCores();
+
+        // Respect SLURM CPU allocation if running under SLURM
+        int WORKERS = ff_numCores();
+        const char *slurm_cpus = std::getenv("SLURM_CPUS_PER_TASK");
+        if (slurm_cpus)
+        {
+            WORKERS = std::atoi(slurm_cpus);
+        }
+
         if (WORKERS <= 0)
         {
             // spdlog::error("==X No workers detected X==");
