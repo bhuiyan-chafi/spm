@@ -28,37 +28,36 @@ th=$(date +"%A, %B %d, %Y - %r")
 
 mkdir -p logs
 
-cd logs && rm -f *.txt && cd ..
 
 echo "LEGENDS:"
 
-echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_$ts.txt 2>&1
+echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_10M_$ts.txt 2>&1
 echo ""
 echo "==> Process has been start, wait till it finishes <=="
 echo ""
-echo "Starting test run at $th" >> logs/run_$ts.txt 2>&1
-echo "" >> logs/run_$ts.txt 2>&1
-echo -e "Starting Sequential implementation:\n" >> logs/run_$ts.txt 2>&1
+echo "Starting test run at $th" >> logs/run_10M_$ts.txt 2>&1
+echo "" >> logs/run_10M_$ts.txt 2>&1
+echo -e "Starting Sequential implementation:\n" >> logs/run_10M_$ts.txt 2>&1
 # pure sequential version
 {
-    ./sequential 10M 64 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-    ./verify ../data/rec_10M_64.bin >> logs/run_$ts.txt 2>&1
+    ./sequential 10M 64 1 $MEMORY_CAP >> logs/run_10M_$ts.txt 2>&1
+    ./verify ../data/rec_10M_64.bin >> logs/run_10M_$ts.txt 2>&1
 }
-echo -e "Starting OpenMP implementation:\n" >> logs/run_$ts.txt 2>&1
+echo -e "Starting OpenMP implementation:\n" >> logs/run_10M_$ts.txt 2>&1
 {
     for WORKERS in 2 4 8 16 32;do
-        ./openmp 10M 64 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-        ./verify ../data/rec_10M_64.bin >> logs/run_$ts.txt 2>&1
+        ./openmp 10M 64 $WORKERS $MEMORY_CAP >> logs/run_10M_$ts.txt 2>&1
+        ./verify ../data/rec_10M_64.bin >> logs/run_10M_$ts.txt 2>&1
     done
 }
 
-echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_$ts.txt 2>&1
+echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_10M_$ts.txt 2>&1
 {
     for WORKERS in 2 4 8 16 32;do
-        ./farm 10M 64 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-        ./verify ../data/rec_10M_64.bin >> logs/run_$ts.txt 2>&1
+        ./farm 10M 64 $WORKERS $MEMORY_CAP >> logs/run_10M_$ts.txt 2>&1
+        ./verify ../data/rec_10M_64.bin >> logs/run_10M_$ts.txt 2>&1
     done
 }
 
 th=$(date +"%A, %B %d, %Y - %r")
-echo "All steps completed at $th" >> logs/run_$ts.txt 2>&1
+echo "All steps completed at $th" >> logs/run_10M_$ts.txt 2>&1

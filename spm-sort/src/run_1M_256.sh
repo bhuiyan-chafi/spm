@@ -28,37 +28,36 @@ th=$(date +"%A, %B %d, %Y - %r")
 
 mkdir -p logs
 
-cd logs && rm -f *.txt && cd ..
 
 echo "LEGENDS:"
 
-echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_$ts.txt 2>&1
+echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_1M_$ts.txt 2>&1
 echo ""
 echo "==> Process has been start, wait till it finishes <=="
 echo ""
-echo "Starting test run at $th" >> logs/run_$ts.txt 2>&1
-echo "" >> logs/run_$ts.txt 2>&1
-echo -e "Starting Sequential implementation:\n" >> logs/run_$ts.txt 2>&1
+echo "Starting test run at $th" >> logs/run_1M_$ts.txt 2>&1
+echo "" >> logs/run_1M_$ts.txt 2>&1
+echo -e "Starting Sequential implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 # pure sequential version
 {
-    ./sequential 1M 256 1 $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-    ./verify ../data/rec_1M_256.bin >> logs/run_$ts.txt 2>&1
+    ./sequential 1M 256 1 $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
+    ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
 }
-echo -e "Starting OpenMP implementation:\n" >> logs/run_$ts.txt 2>&1
+echo -e "Starting OpenMP implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 {
     for WORKERS in 2 4 8 16 32;do
-        ./openmp 1M 256 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-        ./verify ../data/rec_1M_256.bin >> logs/run_$ts.txt 2>&1
+        ./openmp 1M 256 $WORKERS $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
+        ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
     done
 }
 
-echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_$ts.txt 2>&1
+echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 {
     for WORKERS in 2 4 8 16 32;do
-        ./farm 1M 256 $WORKERS $MEMORY_CAP >> logs/run_$ts.txt 2>&1
-        ./verify ../data/rec_1M_256.bin >> logs/run_$ts.txt 2>&1
+        ./farm 1M 256 $WORKERS $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
+        ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
     done
 }
 
 th=$(date +"%A, %B %d, %Y - %r")
-echo "All steps completed at $th" >> logs/run_$ts.txt 2>&1
+echo "All steps completed at $th" >> logs/run_1M_$ts.txt 2>&1
