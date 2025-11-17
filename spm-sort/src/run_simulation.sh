@@ -39,3 +39,9 @@ if [ "$PROGRAM" == "100M_16" ];then
     srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1 &
 fi
 
+if [ "$PROGRAM" == "mpi" ];then
+    for NODES in 1 2 4 8; do
+        srun --nodes=$NODES --ntasks-per-node=1 --time=00:10:00 --mpi=pmix bash run_mpi.sh $MEMORY_CAP > /dev/null 2>&1 &
+    done
+fi
+
