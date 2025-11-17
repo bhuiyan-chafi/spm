@@ -259,7 +259,7 @@ namespace
             Task *svc(Task *) override
             {
                 auto ranges = slice_ranges(segment_->size(), DEGREE);
-                spdlog::info("[FF][Emitter] Slicing {} items into {} slices", segment_->size(), ranges.size());
+                // spdlog::info("[FF][Emitter] Slicing {} items into {} slices", segment_->size(), ranges.size());
                 for (size_t i = 0; i < ranges.size(); ++i)
                 {
                     auto [L, R] = ranges[i];
@@ -284,7 +284,7 @@ namespace
             TaskResult *svc(Task *task) override
             {
                 auto *local_items = task->items;
-                spdlog::info("[FF][Worker-{}] Sorting slice {} ({} items)", idx_, task->slice_index, local_items->size());
+                // spdlog::info("[FF][Worker-{}] Sorting slice {} ({} items)", idx_, task->slice_index, local_items->size());
 
                 TimerClass &timer = external_timer_ ? *external_timer_ : timer_work;
                 timer.start();
@@ -306,7 +306,7 @@ namespace
                     const long long ns = timer_work.elapsed_ns().count();
                     agg_->publish(static_cast<std::size_t>(idx_), ns);
                 }
-                spdlog::info("[FF][Worker-{}] Total: {}", idx_, timer_work.result());
+                // spdlog::info("[FF][Worker-{}] Total: {}", idx_, timer_work.result());
             }
 
         private:
@@ -365,7 +365,7 @@ namespace
                 }
                 slices_.clear();
 
-                spdlog::info("[FF][Collector] Merged {} slices -> {} items", slices_.size(), output_->size());
+                // spdlog::info("[FF][Collector] Merged {} slices -> {} items", slices_.size(), output_->size());
             }
 
         private:
@@ -398,10 +398,10 @@ namespace
         const auto stream_bytes = fs::file_size(DATA_INPUT, ec);
         const bool fits_in_memory = (!ec) && stream_bytes <= MEMORY_CAP;
 
-        spdlog::info("[MPI][Master] Mode: {}, size={} bytes, MEMORY_CAP={} bytes",
-                     fits_in_memory ? "IN-MEMORY" : "OOC",
-                     stream_bytes,
-                     MEMORY_CAP);
+        // spdlog::info("[MPI][Master] Mode: {}, size={} bytes, MEMORY_CAP={} bytes",
+        //              fits_in_memory ? "IN-MEMORY" : "OOC",
+        //              stream_bytes,
+        //              MEMORY_CAP);
 
         std::ifstream in(DATA_INPUT, std::ios::binary);
         if (!in)
@@ -453,8 +453,8 @@ namespace
             WorkPackage work{!fits_in_memory, segment_id++, std::move(segment)};
             send_work(worker, work, MPI_COMM_WORLD);
             tasks_outstanding++;
-            spdlog::info("[MPI][Master] Sent segment {} to worker {} ({} items)",
-                         work.segment_id, worker, work.items.size());
+            // spdlog::info("[MPI][Master] Sent segment {} to worker {} ({} items)",
+            //              work.segment_id, worker, work.items.size());
             return true;
         };
 
@@ -470,8 +470,8 @@ namespace
             tasks_outstanding--;
             idle_workers.push(source_rank);
 
-            spdlog::info("[MPI][Master] Received result from rank {} -> segment {} ({} items)",
-                         source_rank, result.segment_id, result.items.size());
+            // spdlog::info("[MPI][Master] Received result from rank {} -> segment {} ({} items)",
+            //              source_rank, result.segment_id, result.items.size());
 
             if (result.spill)
             {
@@ -483,7 +483,7 @@ namespace
                 for (const auto &item : result.items)
                     write_record(out, item.key, item.payload);
                 run_paths.push_back(std::move(path));
-                spdlog::info("[MPI][Master] Segment {} written -> {}", result.segment_id, run_paths.back());
+                // spdlog::info("[MPI][Master] Segment {} written -> {}", result.segment_id, run_paths.back());
             }
             else
             {
@@ -540,7 +540,7 @@ namespace
                     heap.push(HeapNode{reader.key, top.run_index});
             }
 
-            spdlog::info("[MPI][Master] Final merge complete: {} records", written);
+            // spdlog::info("[MPI][Master] Final merge complete: {} records", written);
 
             // Cleanup
             for (const auto &path : run_paths)
@@ -586,7 +586,7 @@ namespace
                     heap.push(HeapNode{node.batch_index, next_idx, (*inmem_batches[node.batch_index])[next_idx].key});
             }
 
-            spdlog::info("[MPI][Master] In-memory merge complete: {} records", written);
+            // spdlog::info("[MPI][Master] In-memory merge complete: {} records", written);
         }
     }
 
@@ -607,8 +607,8 @@ namespace
             if (!receive_work(0, work, MPI_COMM_WORLD))
                 break;
 
-            spdlog::info("[MPI][Worker-{}] Received segment {} ({} items)",
-                         rank, work.segment_id, work.items.size());
+            // spdlog::info("[MPI][Worker-{}] Received segment {} ({} items)",
+            //              rank, work.segment_id, work.items.size());
 
             // Run FastFlow farm on this segment
             Items result;
@@ -639,8 +639,8 @@ namespace
             }
 
             segments_processed++;
-            spdlog::info("[MPI][Worker-{}] FastFlow farm complete, sending {} items back (segment {})",
-                         rank, result.size(), segments_processed);
+            // spdlog::info("[MPI][Worker-{}] FastFlow farm complete, sending {} items back (segment {})",
+            //              rank, result.size(), segments_processed);
 
             WorkPackage response{work.spill, work.segment_id, std::move(result)};
             send_result(0, response, MPI_COMM_WORLD);
@@ -657,8 +657,8 @@ namespace
         uint64_t elapsed_ns = timings->total();
         MPI_Send(&elapsed_ns, 1, MPI_UINT64_T, 0, 999, MPI_COMM_WORLD);
 
-        spdlog::info("[MPI][Worker-{}] Finished: {} segments processed, total time: {}",
-                     rank, segments_processed, timings->total_str());
+        // spdlog::info("[MPI][Worker-{}] Finished: {} segments processed, total time: {}",
+        //  rank, segments_processed, timings->total_str());
     }
 
 } // namespace
