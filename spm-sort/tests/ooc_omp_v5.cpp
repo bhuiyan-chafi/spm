@@ -214,7 +214,7 @@ namespace farm
                                    (*batches[current.batch_idx][current.task_idx].items)[next_idx].key});
         }
 
-        // spdlog::info("[Merge] Wrote {} records -> {}", written, output_path);
+        spdlog::info("[Merge] Wrote {} records -> {}", written, output_path);
     }
 
     std::string flush_to_disk(std::vector<std::vector<SortedTask>> &batches)
@@ -268,7 +268,7 @@ namespace farm
                 heap.push(HeapNode{reader.key, current.run_index});
         }
 
-        // spdlog::info("[Final Merge] Wrote {} records -> {}", written, DATA_OUTPUT);
+        spdlog::info("[Final Merge] Wrote {} records -> {}", written, DATA_OUTPUT);
 
         for (const auto &path : run_paths)
             std::filesystem::remove(path);
@@ -313,8 +313,8 @@ namespace farm
                       std::atomic<size_t> &tasks_sorted, int worker_id,
                       Timings &worker_timings)
     {
-        // unsigned long tid = get_tid();
-        // spdlog::info("[Worker-{} TID:{}] Started", worker_id, tid);
+        unsigned long tid = get_tid();
+        spdlog::info("[Worker-{} TID:{}] Started", worker_id, tid);
         size_t local_count = 0;
         TimerClass local_timer;
 
@@ -327,14 +327,14 @@ namespace farm
             if (task.is_poison)
             {
                 sorted_queue.push(SortedTask{nullptr, 0, 0, true});
-                // spdlog::info("[Worker-{} TID:{}] Poison received, sorted {} tasks TOTAL in {}",
-                //              worker_id, tid, local_count, local_timer.result());
+                spdlog::info("[Worker-{} TID:{}] Poison received, sorted {} tasks TOTAL in {}",
+                             worker_id, tid, local_count, local_timer.result());
                 break;
             }
 
-            // spdlog::info("[Worker-{} TID:{}] Processing segment_{} slice_{} ({} items) [Task #{}]",
-            //              worker_id, tid, task.segment_id, task.slice_index,
-            //              task.items->size(), local_count + 1);
+            spdlog::info("[Worker-{} TID:{}] Processing segment_{} slice_{} ({} items) [Task #{}]",
+                         worker_id, tid, task.segment_id, task.slice_index,
+                         task.items->size(), local_count + 1);
 
             {
                 TimerScope ts(local_timer);
@@ -343,8 +343,8 @@ namespace farm
                           { return a.key < b.key; });
             }
 
-            // spdlog::info("[Worker-{} TID:{}] Completed segment_{} slice_{} [Task #{}]",
-            //              worker_id, tid, task.segment_id, task.slice_index, local_count + 1);
+            spdlog::info("[Worker-{} TID:{}] Completed segment_{} slice_{} [Task #{}]",
+                         worker_id, tid, task.segment_id, task.slice_index, local_count + 1);
 
             sorted_queue.push(SortedTask{std::move(task.items), task.segment_id, task.slice_index, false});
             local_count++;
@@ -352,8 +352,8 @@ namespace farm
         }
 
         worker_timings.publish(worker_id, local_timer.elapsed_ns().count());
-        // spdlog::info("[Worker-{}] Completed: {} tasks sorted, {} total work time",
-        //              tid, local_count, local_timer.result());
+        spdlog::info("[Worker-{}] Completed: {} tasks sorted, {} total work time",
+                     tid, local_count, local_timer.result());
     }
 
     void collector_stage(SafeQueue<SortedTask> &sorted_queue, size_t num_workers)
@@ -423,10 +423,10 @@ namespace farm
         std::atomic<size_t> tasks_sorted{0};
         Timings worker_timings(num_workers);
 
-        // spdlog::info("==> Starting OMP Farm: {} workers <==", num_workers);
-        // spdlog::info("==> Task Queue Max Size: {} tasks <==", num_workers * 4);
-        // spdlog::info("==> DISTRIBUTION_CAP: {} MB <==", DISTRIBUTION_CAP / (1024 * 1024));
-        // spdlog::info("==> MEMORY_CAP: {} GB <==", MEMORY_CAP / (1024 * 1024 * 1024));
+        spdlog::info("==> Starting OMP Farm: {} workers <==", num_workers);
+        spdlog::info("==> Task Queue Max Size: {} tasks <==", num_workers * 4);
+        spdlog::info("==> DISTRIBUTION_CAP: {} MB <==", DISTRIBUTION_CAP / (1024 * 1024));
+        spdlog::info("==> MEMORY_CAP: {} GB <==", MEMORY_CAP / (1024 * 1024 * 1024));
 
 // OpenMP parallel region with tasks
 #pragma omp parallel num_threads(num_workers + 2)
@@ -456,9 +456,9 @@ namespace farm
             }
         }
 
-        // spdlog::info("[Pipeline] All workers finished");
-        // spdlog::info("==> Total tasks sorted: {} <==", tasks_sorted.load());
-        // spdlog::info("==> Total worker time (accumulated): {} <==", worker_timings.total_str());
+        spdlog::info("[Pipeline] All workers finished");
+        spdlog::info("==> Total tasks sorted: {} <==", tasks_sorted.load());
+        spdlog::info("==> Total worker time (accumulated): {} <==", worker_timings.total_str());
         report.WORKING_TIME = worker_timings.total_str();
     }
 
@@ -472,9 +472,9 @@ int main(int argc, char **argv)
 
     size_t threads = (WORKERS > 0) ? static_cast<size_t>(WORKERS) : 1;
 
-    // spdlog::info("==> OMP Farm Configuration <==");
-    // spdlog::info("==> Input: {} <==", DATA_INPUT);
-    // spdlog::info("==> Workers: {} <==", threads);
+    spdlog::info("==> OMP Farm Configuration <==");
+    spdlog::info("==> Input: {} <==", DATA_INPUT);
+    spdlog::info("==> Workers: {} <==", threads);
 
     TimerClass total_time;
 
@@ -489,8 +489,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // spdlog::info("->[Timer] Total execution time: {}", total_time.result());
-    // spdlog::info("==> Completed successfully -> {} <==", DATA_OUTPUT);
+    spdlog::info("->[Timer] Total execution time: {}", total_time.result());
+    spdlog::info("==> Completed successfully -> {} <==", DATA_OUTPUT);
     report.TOTAL_TIME = total_time.result();
     spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}", report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS, DISTRIBUTION_CAP / IN_MB, report.WORKING_TIME, report.TOTAL_TIME);
     return EXIT_SUCCESS;

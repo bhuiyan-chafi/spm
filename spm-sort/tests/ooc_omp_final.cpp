@@ -213,7 +213,7 @@ namespace farm
                                    (*batches[current.batch_idx][current.task_idx].items)[next_idx].key});
         }
 
-        // spdlog::info("[Merge] Wrote {} records -> {}", written, output_path);
+        spdlog::info("[Merge] Wrote {} records -> {}", written, output_path);
 
         // Aggressively free memory after writing
         for (auto &batch : batches)
@@ -284,7 +284,7 @@ namespace farm
                 heap.push(HeapNode{reader.key, current.run_index});
         }
 
-        // spdlog::info("[Final Merge] Wrote {} records -> {}", written, DATA_OUTPUT);
+        spdlog::info("[Final Merge] Wrote {} records -> {}", written, DATA_OUTPUT);
 
         for (const auto &path : run_paths)
             std::filesystem::remove(path);
@@ -329,8 +329,8 @@ namespace farm
                       std::atomic<size_t> &tasks_sorted, int worker_id,
                       std::atomic<uint64_t> &total_worker_time_ns)
     {
-        // unsigned long tid = get_tid();
-        // spdlog::info("[Worker-{} TID:{}] Started", worker_id, tid);
+        unsigned long tid = get_tid();
+        spdlog::info("[Worker-{} TID:{}] Started", worker_id, tid);
         size_t local_count = 0;
         TimerClass local_timer;
 
@@ -343,14 +343,14 @@ namespace farm
             if (task.is_poison)
             {
                 sorted_queue.push(SortedTask{nullptr, 0, 0, true});
-                // spdlog::info("[Worker-{} TID:{}] Poison received, sorted {} tasks TOTAL in {}",
-                //              worker_id, tid, local_count, local_timer.result());
+                spdlog::info("[Worker-{} TID:{}] Poison received, sorted {} tasks TOTAL in {}",
+                             worker_id, tid, local_count, local_timer.result());
                 break;
             }
 
-            // spdlog::info("[Worker-{} TID:{}] Processing segment_{} slice_{} ({} items) [Task #{}]",
-            //              worker_id, tid, task.segment_id, task.slice_index,
-            //              task.items->size(), local_count + 1);
+            spdlog::info("[Worker-{} TID:{}] Processing segment_{} slice_{} ({} items) [Task #{}]",
+                         worker_id, tid, task.segment_id, task.slice_index,
+                         task.items->size(), local_count + 1);
 
             local_timer.start();
             std::sort(task.items->begin(), task.items->end(),
@@ -358,9 +358,9 @@ namespace farm
                       { return a.key < b.key; });
             local_timer.stop();
 
-            // spdlog::info("[Worker-{} TID:{}] Completed segment_{} slice_{} in {} [Task #{}]",
-            //              worker_id, tid, task.segment_id, task.slice_index,
-            //              local_timer.result(), local_count + 1);
+            spdlog::info("[Worker-{} TID:{}] Completed segment_{} slice_{} in {} [Task #{}]",
+                         worker_id, tid, task.segment_id, task.slice_index,
+                         local_timer.result(), local_count + 1);
 
             sorted_queue.push(SortedTask{std::move(task.items), task.segment_id, task.slice_index, false});
             local_count++;
@@ -368,8 +368,8 @@ namespace farm
         }
 
         total_worker_time_ns.fetch_add(local_timer.elapsed_ns().count(), std::memory_order_relaxed);
-        // spdlog::info("[Worker-{}] Completed: {} tasks sorted, {} total work time",
-        //              tid, local_count, local_timer.result());
+        spdlog::info("[Worker-{}] Completed: {} tasks sorted, {} total work time",
+                     tid, local_count, local_timer.result());
     }
 
     // ==================== WRITER THREAD POOL ====================
@@ -380,8 +380,8 @@ namespace farm
                       int writer_id,
                       std::atomic<uint64_t> &total_write_time_ns)
     {
-        // unsigned long tid = get_tid();
-        // spdlog::info("[Writer-{} TID:{}] Started", writer_id, tid);
+        unsigned long tid = get_tid();
+        spdlog::info("[Writer-{} TID:{}] Started", writer_id, tid);
         size_t segments_written = 0;
         TimerClass local_timer;
 
@@ -393,22 +393,22 @@ namespace farm
 
             if (write_task.is_poison)
             {
-                // spdlog::info("[Writer-{} TID:{}] Poison received, wrote {} segments in {}",
-                //              writer_id, tid, segments_written,
-                //              local_timer.result());
+                spdlog::info("[Writer-{} TID:{}] Poison received, wrote {} segments in {}",
+                             writer_id, tid, segments_written,
+                             local_timer.result());
                 break;
             }
 
-            // spdlog::info("[Writer-{} TID:{}] Writing segment {} to disk",
-            //              writer_id, tid, write_task.segment_id);
+            spdlog::info("[Writer-{} TID:{}] Writing segment {} to disk",
+                         writer_id, tid, write_task.segment_id);
 
             local_timer.start();
             std::string run_path = flush_to_disk(write_task.batches);
             local_timer.stop();
 
-            // spdlog::info("[Writer-{} TID:{}] Segment {} written to disk in {} -> {}",
-            //              writer_id, tid, write_task.segment_id,
-            //              local_timer.result(), run_path);
+            spdlog::info("[Writer-{} TID:{}] Segment {} written to disk in {} -> {}",
+                         writer_id, tid, write_task.segment_id,
+                         local_timer.result(), run_path);
 
             // Explicitly clear batches to free memory immediately
             write_task.batches.clear();
@@ -416,12 +416,6 @@ namespace farm
 
             // Force memory return to OS
             malloc_trim(0);
-
-            // spdlog::info("[Writer-{} TID:{}] Segment {} complete: write={}, cleanup={}, total={} - Memory freed",
-            //              writer_id, tid, write_task.segment_id,
-            //              TimerClass::humanize_ns(write_duration_ns),
-            //              TimerClass::humanize_ns(cleanup_duration_ns),
-            //              TimerClass::humanize_ns(total_duration_ns));
             {
                 std::lock_guard<std::mutex> lock(paths_mutex);
                 run_paths.push_back(run_path);
@@ -431,9 +425,9 @@ namespace farm
         }
 
         total_write_time_ns.fetch_add(local_timer.elapsed_ns().count(), std::memory_order_relaxed);
-        // spdlog::info("[Writer-{} TID:{}] Finished: {} segments written, total time {}",
-        //              writer_id, tid, segments_written,
-        //              local_timer.result());
+        spdlog::info("[Writer-{} TID:{}] Finished: {} segments written, total time {}",
+                     writer_id, tid, segments_written,
+                     local_timer.result());
     } // ==================== COORDINATOR (formerly Collector) ====================
 
     void coordinator_stage(SafeQueue<SortedTask> &sorted_queue,
@@ -458,14 +452,14 @@ namespace farm
         const size_t slices_per_segment = DEGREE; // as many slices we did to one segment=DISTRIBUTION_CAP
         uint64_t accumulated_bytes = 0;
 
-        // if (write_segments)
-        // {
-        //     spdlog::info("[Coordinator] Mode: OUT-OF-CORE - Writing segments individually via writer pool");
-        // }
-        // else
-        // {
-        //     spdlog::info("[Coordinator] Mode: IN-MEMORY - Accumulating all segments for single write");
-        // }
+        if (write_segments)
+        {
+            spdlog::info("[Coordinator] Mode: OUT-OF-CORE - Writing segments individually via writer pool");
+        }
+        else
+        {
+            spdlog::info("[Coordinator] Mode: IN-MEMORY - Accumulating all segments for single write");
+        }
 
         while (poison_count < num_workers)
         {
@@ -496,14 +490,14 @@ namespace farm
             // Check if segment is complete
             if (seg_info.tasks.size() == seg_info.expected_slices)
             {
-                // double mb_size = static_cast<double>(seg_info.total_bytes) / (1024.0 * 1024.0);
-                // size_t task_count = seg_info.tasks.size();
+                double mb_size = static_cast<double>(seg_info.total_bytes) / (1024.0 * 1024.0);
+                size_t task_count = seg_info.tasks.size();
 
                 if (write_segments)
                 {
                     // OUT-OF-CORE MODE: Write segment immediately via writer pool
-                    // spdlog::info("[Coordinator] Segment {} complete ({} slices, {:.2f} MB) - Sending to writer pool",
-                    //              current_segment_id, task_count, mb_size);
+                    spdlog::info("[Coordinator] Segment {} complete ({} slices, {:.2f} MB) - Sending to writer pool",
+                                 current_segment_id, task_count, mb_size);
 
                     // Prepare write task
                     std::vector<std::vector<SortedTask>> single_segment_batch;
@@ -514,13 +508,13 @@ namespace farm
 
                     // Free memory immediately from coordinator's map
                     segments.erase(current_segment_id);
-                    // spdlog::info("[Coordinator] Segment {} removed from coordinator memory", current_segment_id);
+                    spdlog::info("[Coordinator] Segment {} removed from coordinator memory", current_segment_id);
                 }
                 else
                 {
                     // IN-MEMORY MODE: Keep accumulating
-                    // spdlog::info("[Coordinator] Segment {} complete ({} slices, {:.2f} MB) - Accumulating in memory",
-                    //              current_segment_id, task_count, mb_size);
+                    spdlog::info("[Coordinator] Segment {} complete ({} slices, {:.2f} MB) - Accumulating in memory",
+                                 current_segment_id, task_count, mb_size);
                     accumulated_bytes += seg_info.total_bytes;
                     // Keep segment in memory, don't erase
                 }
@@ -533,15 +527,15 @@ namespace farm
             // OUT-OF-CORE: Handle any remaining incomplete segments
             if (!segments.empty())
             {
-                // size_t incomplete_count = segments.size();
-                // spdlog::info("[Coordinator] Processing {} incomplete segments", incomplete_count);
+                size_t incomplete_count = segments.size();
+                spdlog::info("[Coordinator] Processing {} incomplete segments", incomplete_count);
                 for (auto &[seg_id, seg_info] : segments)
                 {
                     if (!seg_info.tasks.empty())
                     {
-                        // size_t task_count = seg_info.tasks.size();
-                        // spdlog::info("[Coordinator] Flushing incomplete segment {} ({} slices)",
-                        //              seg_id, task_count);
+                        size_t task_count = seg_info.tasks.size();
+                        spdlog::info("[Coordinator] Flushing incomplete segment {} ({} slices)",
+                                     seg_id, task_count);
                         std::vector<std::vector<SortedTask>> single_segment_batch;
                         single_segment_batch.push_back(std::move(seg_info.tasks));
                         write_queue.push(WriteTask{std::move(single_segment_batch), seg_id, false});
@@ -550,7 +544,7 @@ namespace farm
             }
 
             // Send poison pills to writers
-            // spdlog::info("[Coordinator] Sending poison pills to {} writers", num_writers);
+            spdlog::info("[Coordinator] Sending poison pills to {} writers", num_writers);
             for (size_t i = 0; i < num_writers; ++i)
             {
                 write_queue.push(WriteTask{{}, 0, true});
@@ -561,9 +555,9 @@ namespace farm
             // IN-MEMORY: Write all accumulated segments at once
             if (!segments.empty())
             {
-                // double gb_size = static_cast<double>(accumulated_bytes) / (1024.0 * 1024.0 * 1024.0);
-                // spdlog::info("[Coordinator] All data accumulated ({:.2f} GB) - Writing directly to output",
-                //              gb_size);
+                double gb_size = static_cast<double>(accumulated_bytes) / (1024.0 * 1024.0 * 1024.0);
+                spdlog::info("[Coordinator] All data accumulated ({:.2f} GB) - Writing directly to output",
+                             gb_size);
 
                 // Flatten all segments into batches structure
                 std::vector<std::vector<SortedTask>> all_batches;
@@ -574,7 +568,7 @@ namespace farm
 
                 // Write directly to output (no intermediate runs)
                 merge_batches_to_file(all_batches, DATA_OUTPUT);
-                // spdlog::info("[Coordinator] Direct write to output completed");
+                spdlog::info("[Coordinator] Direct write to output completed");
             }
 
             // No need for writers, send poison pills anyway to clean up
@@ -584,7 +578,7 @@ namespace farm
             }
         }
 
-        // spdlog::info("[Coordinator] Completed");
+        spdlog::info("[Coordinator] Completed");
     }
 
     // ==================== MAIN PIPELINE ====================
@@ -597,20 +591,20 @@ namespace farm
         if (write_segments)
             report.METHOD = "MEMORY_OOC";
 
-        // if (write_segments)
-        // {
-        //     spdlog::info("==> OUT-OF-CORE Mode: Input ({:.2f} GB) > Memory Cap ({:.2f} GB) <==",
-        //                  INPUT_BYTES / (1024.0 * 1024.0 * 1024.0),
-        //                  MEMORY_CAP / (1024.0 * 1024.0 * 1024.0));
-        //     spdlog::info("==> Will write segments individually using {} writer threads <==", num_writers);
-        // }
-        // else
-        // {
-        //     spdlog::info("==> IN-MEMORY Mode: Input ({:.2f} GB) <= Memory Cap ({:.2f} GB) <==",
-        //                  INPUT_BYTES / (1024.0 * 1024.0 * 1024.0),
-        //                  MEMORY_CAP / (1024.0 * 1024.0 * 1024.0));
-        //     spdlog::info("==> Will accumulate all data and write once to output <==");
-        // }
+        if (write_segments)
+        {
+            spdlog::info("==> OUT-OF-CORE Mode: Input ({:.2f} GB) > Memory Cap ({:.2f} GB) <==",
+                         INPUT_BYTES / (1024.0 * 1024.0 * 1024.0),
+                         MEMORY_CAP / (1024.0 * 1024.0 * 1024.0));
+            spdlog::info("==> Will write segments individually using {} writer threads <==", num_writers);
+        }
+        else
+        {
+            spdlog::info("==> IN-MEMORY Mode: Input ({:.2f} GB) <= Memory Cap ({:.2f} GB) <==",
+                         INPUT_BYTES / (1024.0 * 1024.0 * 1024.0),
+                         MEMORY_CAP / (1024.0 * 1024.0 * 1024.0));
+            spdlog::info("==> Will accumulate all data and write once to output <==");
+        }
 
         /**
          * The question is if one worker is processing size of data = it's l1 cache and we created workers^workers amount of
@@ -633,10 +627,10 @@ namespace farm
         std::vector<std::string> run_paths;
         std::mutex paths_mutex;
 
-        // spdlog::info("==> Starting OMP Farm: {} workers, {} writers <==", num_workers, num_writers);
-        // spdlog::info("==> Task Queue Max Size: {} tasks <==", num_workers * 4);
-        // spdlog::info("==> DISTRIBUTION_CAP: {} MB <==", DISTRIBUTION_CAP / (1024 * 1024));
-        // spdlog::info("==> MEMORY_CAP: {} GB <==", MEMORY_CAP / (1024 * 1024 * 1024));
+        spdlog::info("==> Starting OMP Farm: {} workers, {} writers <==", num_workers, num_writers);
+        spdlog::info("==> Task Queue Max Size: {} tasks <==", num_workers * 4);
+        spdlog::info("==> DISTRIBUTION_CAP: {} MB <==", DISTRIBUTION_CAP / (1024 * 1024));
+        spdlog::info("==> MEMORY_CAP: {} GB <==", MEMORY_CAP / (1024 * 1024 * 1024));
 
         // Total threads: 1 emitter + num_workers + 1 coordinator + num_writers
         size_t total_threads = 1 + num_workers + 1 + num_writers;
@@ -678,16 +672,16 @@ namespace farm
             }
         }
 
-        // spdlog::info("[Pipeline] All workers and writers finished");
-        // spdlog::info("==> Total tasks sorted: {} <==", tasks_sorted.load());
-        // spdlog::info("==> Total worker time (accumulated): {} <==",
-        //              TimerClass::humanize_ns(total_worker_time_ns.load()));
+        spdlog::info("[Pipeline] All workers and writers finished");
+        spdlog::info("==> Total tasks sorted: {} <==", tasks_sorted.load());
+        spdlog::info("==> Total worker time (accumulated): {} <==",
+                     TimerClass::humanize_ns(total_worker_time_ns.load()));
         report.WORKING_TIME = TimerClass::humanize_ns(total_worker_time_ns.load());
         if (write_segments && total_write_time_ns.load() > 0)
         {
-            // spdlog::info("==> Total intermediate write time (accumulated): {} <==",
-            //              TimerClass::humanize_ns(total_write_time_ns.load()));
-            // spdlog::info("==> Number of intermediate runs written: {} <==", run_paths.size());
+            spdlog::info("==> Total intermediate write time (accumulated): {} <==",
+                         TimerClass::humanize_ns(total_write_time_ns.load()));
+            spdlog::info("==> Number of intermediate runs written: {} <==", run_paths.size());
         }
 
         // Final merge of all segment runs (only if write_segments was true)
@@ -695,22 +689,22 @@ namespace farm
         {
             if (run_paths.empty())
             {
-                // spdlog::warn("[Final] No runs to merge - output should have been written directly");
+                spdlog::warn("[Final] No runs to merge - output should have been written directly");
             }
             else if (run_paths.size() == 1)
             {
-                // spdlog::info("[Final] Single run file - renaming to output");
+                spdlog::info("[Final] Single run file - renaming to output");
                 std::filesystem::rename(run_paths[0], DATA_OUTPUT);
             }
             else
             {
-                // spdlog::info("[Final] Performing final k-way merge of {} runs", run_paths.size());
+                spdlog::info("[Final] Performing final k-way merge of {} runs", run_paths.size());
                 final_merge(run_paths);
             }
         }
         else
         {
-            // spdlog::info("[Final] In-memory mode - output already written directly by coordinator");
+            spdlog::info("[Final] In-memory mode - output already written directly by coordinator");
         }
     }
 
@@ -723,9 +717,9 @@ int main(int argc, char **argv)
     parse_cli_and_set(argc, argv);
     size_t threads = (WORKERS > 0) ? static_cast<size_t>(WORKERS) : 1;
 
-    // spdlog::info("==> OMP Farm Configuration <==");
-    // spdlog::info("==> Input: {} <==", DATA_INPUT);
-    // spdlog::info("==> Workers: {} <==", threads);
+    spdlog::info("==> OMP Farm Configuration <==");
+    spdlog::info("==> Input: {} <==", DATA_INPUT);
+    spdlog::info("==> Workers: {} <==", threads);
 
     TimerClass total_time;
 
@@ -740,8 +734,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // spdlog::info("->[Timer] Total execution time: {}", total_time.result());
-    // spdlog::info("==> Completed successfully -> {} <==", DATA_OUTPUT);
+    spdlog::info("->[Timer] Total execution time: {}", total_time.result());
+    spdlog::info("==> Completed successfully -> {} <==", DATA_OUTPUT);
     report.TOTAL_TIME = total_time.result();
     spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}", report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS, DISTRIBUTION_CAP / IN_MB, report.WORKING_TIME, report.TOTAL_TIME);
     return EXIT_SUCCESS;
