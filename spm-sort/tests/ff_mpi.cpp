@@ -698,7 +698,8 @@ int main(int argc, char **argv)
             total_worker_time.add_elapsed(std::chrono::nanoseconds(accumulated_worker_ns));
 
             // Set report values
-            report.WORKERS = world_size - 1; // Number of MPI workers
+            // report.WORKERS = world_size - 1; // Number of MPI workers
+            report.WORKERS = WORKERS; // Number of threads not MPI workers
             report.WORKING_TIME = total_worker_time.result();
             report.TOTAL_TIME = total_time.result();
 

@@ -28,17 +28,6 @@ th=$(date +"%A, %B %d, %Y - %r")
 
 mkdir -p logs
 
-
-echo "LEGENDS:"
-
-echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_mpi_$ts.txt 2>&1
-echo ""
-echo "==> Process has been start, wait till it finishes <=="
-echo ""
-echo "Starting test run at $th" >> logs/run_mpi_$ts.txt 2>&1
-echo "" >> logs/run_mpi_$ts.txt 2>&1
-echo -e "Starting MPI+FARM implementation:\n" >> logs/run_mpi_$ts.txt 2>&1
-
 {
     for WORKERS in 2 4 8 16 32;do
         ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
@@ -47,4 +36,3 @@ echo -e "Starting MPI+FARM implementation:\n" >> logs/run_mpi_$ts.txt 2>&1
 }
 
 th=$(date +"%A, %B %d, %Y - %r")
-echo "All steps completed at $th" >> logs/run_mpi_$ts.txt 2>&1
