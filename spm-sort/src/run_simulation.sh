@@ -44,7 +44,7 @@ if [ "$PROGRAM" == "mpi" ];then
         # --ntasks-per-node=3 because we are generating 3 tasks(emitter+worker+collector)
         # but it will work with 2 because of master worker relationship
         # less than 2 workers will fail, so we kept 3 as we have 3 tasks
-        srun --nodes=$NODES --ntasks-per-node=3 --time=00:10:00 --mpi=pmix bash run_mpi.sh $MEMORY_CAP > /dev/null 2>&1 &
+        srun --nodes=$NODES --ntasks-per-node=1 --time=00:10:00 --mpi=pmix bash run_mpi.sh $MEMORY_CAP > /dev/null 2>&1 &
     done
 fi
 
