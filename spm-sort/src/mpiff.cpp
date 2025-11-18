@@ -292,7 +292,8 @@ namespace
                           [](const Item &a, const Item &b)
                           { return a.key < b.key; });
                 timer.stop();
-
+                // //spdlog::info("[Worker-{}] Completed slice_{} in {}",
+                //              idx_, task->slice_index, timer.result());
                 auto *result = new TaskResult{local_items, task->slice_index};
                 delete task;
                 return result;
@@ -306,7 +307,7 @@ namespace
                     const long long ns = timer_work.elapsed_ns().count();
                     agg_->publish(static_cast<std::size_t>(idx_), ns);
                 }
-                // spdlog::info("[FF][Worker-{}] Total: {}", idx_, timer_work.result());
+                // spdlog::info("[FF][Worker-{}] Total: {}", idx_, external_timer_->result());
             }
 
         private:
@@ -399,9 +400,9 @@ namespace
         const bool fits_in_memory = (!ec) && stream_bytes <= MEMORY_CAP;
 
         // spdlog::info("[MPI][Master] Mode: {}, size={} bytes, MEMORY_CAP={} bytes",
-        //              fits_in_memory ? "IN-MEMORY" : "OOC",
-        //              stream_bytes,
-        //              MEMORY_CAP);
+        //  fits_in_memory ? "IN-MEMORY" : "OOC",
+        //  stream_bytes,
+        //  MEMORY_CAP);
 
         std::ifstream in(DATA_INPUT, std::ios::binary);
         if (!in)
@@ -420,6 +421,10 @@ namespace
 
         auto read_and_send_segment = [&]() -> bool
         {
+            static bool has_leftover = false;
+            static uint64_t leftover_key;
+            static CompactPayload leftover_payload;
+
             if (idle_workers.empty())
                 return false;
 
@@ -427,19 +432,32 @@ namespace
             segment.reserve(64'000);
             uint64_t accumulator = 0ULL;
 
+            if (has_leftover)
+            {
+                const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + leftover_payload.size();
+                segment.push_back(Item{leftover_key, std::move(leftover_payload)});
+                accumulator += record_size;
+                has_leftover = false;
+            }
+
             while (true)
             {
                 uint64_t key;
                 CompactPayload payload;
                 if (!read_record(in, key, payload))
                 {
-                    if (segment.empty())
-                        return false;
+                    // EOF
                     break;
                 }
+
                 const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
                 if (accumulator + record_size > DISTRIBUTION_CAP && !segment.empty())
+                {
+                    has_leftover = true;
+                    leftover_key = key;
+                    leftover_payload = std::move(payload);
                     break;
+                }
                 segment.push_back(Item{key, std::move(payload)});
                 accumulator += record_size;
             }
@@ -454,7 +472,7 @@ namespace
             send_work(worker, work, MPI_COMM_WORLD);
             tasks_outstanding++;
             // spdlog::info("[MPI][Master] Sent segment {} to worker {} ({} items)",
-            //              work.segment_id, worker, work.items.size());
+            //  work.segment_id, worker, work.items.size());
             return true;
         };
 
@@ -471,7 +489,7 @@ namespace
             idle_workers.push(source_rank);
 
             // spdlog::info("[MPI][Master] Received result from rank {} -> segment {} ({} items)",
-            //              source_rank, result.segment_id, result.items.size());
+            //  source_rank, result.segment_id, result.items.size());
 
             if (result.spill)
             {
@@ -608,7 +626,7 @@ namespace
                 break;
 
             // spdlog::info("[MPI][Worker-{}] Received segment {} ({} items)",
-            //              rank, work.segment_id, work.items.size());
+            //  rank, work.segment_id, work.items.size());
 
             // Run FastFlow farm on this segment
             Items result;
@@ -640,7 +658,7 @@ namespace
 
             segments_processed++;
             // spdlog::info("[MPI][Worker-{}] FastFlow farm complete, sending {} items back (segment {})",
-            //              rank, result.size(), segments_processed);
+            //  rank, result.size(), segments_processed);
 
             WorkPackage response{work.spill, work.segment_id, std::move(result)};
             send_result(0, response, MPI_COMM_WORLD);
