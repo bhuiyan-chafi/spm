@@ -1,5 +1,4 @@
-# run: bash run_simulation.sh > /dev/null 2>&1 &
-# srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=01:00:00 bash run_simulation.sh 32 > /dev/null 2>&1 &
+# run: bash run_mpi.sh 32> /dev/null 2>&1 &
 # Be very careful about this script, don't be stupid unless you are confident about your program
 # if you are using srun then book it for proper time lap
 # otherwise you are occupying resources for nothing
@@ -12,8 +11,8 @@ MEMORY_CAP=$1
 # Validate MEMORY_CAP
 if [[ ! "$MEMORY_CAP" =~ ^[0-9]+$ ]]; then
     echo "Error: MEMORY_CAP must be an integer"
-    echo "Usage: bash run_simulation.sh <MEMORY_CAP>"
-    echo "Example: bash run_simulation.sh 32"
+    echo "Usage: bash run_mpi.sh <MEMORY_CAP>"
+    echo "Example: bash run_mpi.sh 32"
     exit 1
 fi
 
@@ -27,12 +26,22 @@ ts=$(date +%Y%m%d-%H%M%S)
 th=$(date +"%A, %B %d, %Y - %r")
 
 mkdir -p logs
+echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_1M_$ts.txt 2>&1
+echo ""
+echo "==> Process has been start, wait till it finishes <=="
+echo ""
+echo "Starting test run at $th" >> logs/run_1M_$ts.txt 2>&1
+echo "" >> logs/run_1M_$ts.txt 2>&1
+echo -e "Starting MPI+FF implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 
 {
-    for WORKERS in 2 4 8 16 32;do
-        ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
-        ./verify ../data/rec_1M_256.bin >> logs/run_mpi_$ts.txt 2>&1
+    for NODES in 2 4 6 8;do
+        for WORKERS in 2 4 8 16 32;do
+            srun --nodes=$NODES --ntasks-per-node=1 --time=00:10:00 --mpi=pmix ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
+            ./verify ../data/rec_1M_256.bin >> logs/run_mpi_$ts.txt 2>&1
+        done
     done
 }
 
 th=$(date +"%A, %B %d, %Y - %r")
+echo "All steps completed at $th" >> logs/run_1M_$ts.txt 2>&1
