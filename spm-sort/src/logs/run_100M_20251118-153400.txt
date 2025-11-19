@@ -1,0 +1,35 @@
+M: METHODS,
+R: RECORDS,
+PS: PAYLOAD_SIZE,
+W: WORKERS,
+DC: DISTRIBUTION_CAP,
+WT: WORKING_TIME,
+TT: TOTAL_TIME
+
+Starting test run at Tuesday, November 18, 2025 - 03:34:00 PM
+
+Starting Sequential implementation:
+
+[2025-11-18 15:36:18.797] [info] M: IN_MEMORY | R: 100M | PS: 16 | W: 1 | DC:8MiB | WT: 28.438 s | TT: 2.297 min
+[2025-11-18 15:37:56.020] [info] ==> Verification Completed <==
+
+Starting OpenMP implementation:
+
+[2025-11-18 15:39:59.635] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 2 | DC:8MiB | WT: 8.142 s | TT: 2.060 min
+[2025-11-18 15:41:10.555] [info] ==> Verification Completed <==
+[2025-11-18 15:43:26.095] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 4 | DC:8MiB | WT: 7.609 s | TT: 2.259 min
+[2025-11-18 15:44:38.138] [info] ==> Verification Completed <==
+[2025-11-18 15:46:50.729] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 8 | DC:8MiB | WT: 6.713 s | TT: 2.209 min
+[2025-11-18 15:48:02.205] [info] ==> Verification Completed <==
+[2025-11-18 15:50:15.594] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 16 | DC:8MiB | WT: 6.071 s | TT: 2.223 min
+[2025-11-18 15:51:27.590] [info] ==> Verification Completed <==
+[2025-11-18 15:53:35.388] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 32 | DC:32MiB | WT: 6.145 s | TT: 2.130 min
+[2025-11-18 15:54:48.213] [info] ==> Verification Completed <==
+
+Starting FastFlow FARM implementation:
+
+[2025-11-18 15:57:04.755] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 2 | DC:8MiB | WT: 8.487 s | TT: 2.275 min
+[2025-11-18 15:58:16.003] [info] ==> Verification Completed <==
+[2025-11-18 16:00:31.959] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 4 | DC:8MiB | WT: 7.559 s | TT: 2.265 min
+[2025-11-18 16:01:43.772] [info] ==> Verification Completed <==
+[2025-11-18 16:03:46.854] [info] M: IN-MEMORY | R: 100M | PS: 16 | W: 8 | DC:8MiB | WT: 6.624 s | TT: 2.051 min

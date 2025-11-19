@@ -44,7 +44,7 @@ echo -e "Starting Sequential implementation:\n" >> logs/run_100M_$ts.txt 2>&1
 }
 echo -e "\nStarting OpenMP implementation:\n" >> logs/run_100M_$ts.txt 2>&1
 {
-    for WORKERS in 2 4 8 16 32;do
+    for WORKERS in 2 4 8 16 32 48 64 128;do
         ./openmp 100M 16 $WORKERS $MEMORY_CAP >> logs/run_100M_$ts.txt 2>&1
         ./verify ../data/rec_100M_16.bin >> logs/run_100M_$ts.txt 2>&1
     done
@@ -52,7 +52,7 @@ echo -e "\nStarting OpenMP implementation:\n" >> logs/run_100M_$ts.txt 2>&1
 
 echo -e "\nStarting FastFlow FARM implementation:\n" >> logs/run_100M_$ts.txt 2>&1
 {
-    for WORKERS in 2 4 8 16 32;do
+    for WORKERS in 2 4 8 16 32 48 64 128;do
         ./farm 100M 16 $WORKERS $MEMORY_CAP >> logs/run_100M_$ts.txt 2>&1
         ./verify ../data/rec_100M_16.bin >> logs/run_100M_$ts.txt 2>&1
     done

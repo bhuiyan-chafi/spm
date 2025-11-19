@@ -1,0 +1,39 @@
+M: METHODS,
+R: RECORDS,
+PS: PAYLOAD_SIZE,
+W: WORKERS,
+DC: DISTRIBUTION_CAP,
+WT: WORKING_TIME,
+TT: TOTAL_TIME
+
+Starting test run at Monday, November 17, 2025 - 12:17:03 PM
+
+Starting Sequential implementation:
+
+[2025-11-17 12:17:04.839] [info] M: IN_MEMORY | R: 1M | PS: 256 | W: 1 | DC:8MiB | WT: 401.016 ms | TT: 1.535 s
+[2025-11-17 12:17:06.344] [info] ==> Verification Completed <==
+Starting OpenMP implementation:
+
+[2025-11-17 12:17:07.919] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 2 | DC:8MiB | WT: 72.857 ms | TT: 1.544 s
+[2025-11-17 12:17:09.286] [info] ==> Verification Completed <==
+[2025-11-17 12:17:11.027] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 4 | DC:8MiB | WT: 64.772 ms | TT: 1.724 s
+[2025-11-17 12:17:12.404] [info] ==> Verification Completed <==
+[2025-11-17 12:17:14.039] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 8 | DC:8MiB | WT: 57.501 ms | TT: 1.618 s
+[2025-11-17 12:17:15.381] [info] ==> Verification Completed <==
+[2025-11-17 12:17:17.244] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 16 | DC:8MiB | WT: 55.293 ms | TT: 1.820 s
+[2025-11-17 12:17:18.639] [info] ==> Verification Completed <==
+[2025-11-17 12:17:20.383] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 32 | DC:32MiB | WT: 53.435 ms | TT: 1.708 s
+[2025-11-17 12:17:21.772] [info] ==> Verification Completed <==
+Starting FastFlow FARM implementation:
+
+[2025-11-17 12:17:23.362] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 2 | DC:8MiB | WT: 72.977 ms | TT: 1.559 s
+[2025-11-17 12:17:24.803] [info] ==> Verification Completed <==
+[2025-11-17 12:17:26.457] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 4 | DC:8MiB | WT: 63.618 ms | TT: 1.630 s
+[2025-11-17 12:17:27.800] [info] ==> Verification Completed <==
+[2025-11-17 12:17:29.575] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 8 | DC:8MiB | WT: 55.196 ms | TT: 1.756 s
+[2025-11-17 12:17:30.923] [info] ==> Verification Completed <==
+[2025-11-17 12:17:32.890] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 16 | DC:8MiB | WT: 50.374 ms | TT: 1.943 s
+[2025-11-17 12:17:34.263] [info] ==> Verification Completed <==
+[2025-11-17 12:17:36.571] [info] M: IN-MEMORY | R: 1M | PS: 256 | W: 32 | DC:32MiB | WT: 59.485 ms | TT: 2.299 s
+[2025-11-17 12:17:37.950] [info] ==> Verification Completed <==
+All steps completed at Monday, November 17, 2025 - 12:17:37 PM
