@@ -24,25 +24,25 @@ if [ "$MEMORY_CAP" -lt 1 ] || [ "$MEMORY_CAP" -gt 32 ]; then
 fi
 
 if [ "$PROGRAM" == "1M_256" ];then
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_1M_256.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_1M_256.sh $MEMORY_CAP > /dev/null 2>&1
 fi
 
 if [ "$PROGRAM" == "5M_128" ];then
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_5M_128.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_5M_128.sh $MEMORY_CAP > /dev/null 2>&1
 fi
 
 if [ "$PROGRAM" == "10M_64" ];then
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_10M_64.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_10M_64.sh $MEMORY_CAP > /dev/null 2>&1
 fi
 
 if [ "$PROGRAM" == "100M_16" ];then
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1
 fi
 
 if [ "$PROGRAM" == "ALL" ];then
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_1M_256.sh $MEMORY_CAP > /dev/null 2>&1
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_5M_128.sh $MEMORY_CAP > /dev/null 2>&1
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:10:00 bash run_10M_64.sh $MEMORY_CAP > /dev/null 2>&1
-    srun --nodes=1 --ntasks=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_1M_256.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_5M_128.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_10M_64.sh $MEMORY_CAP > /dev/null 2>&1
+    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1
 fi
 
