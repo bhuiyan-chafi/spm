@@ -1,0 +1,13 @@
+M: METHODS,
+R: RECORDS,
+PS: PAYLOAD_SIZE,
+W: WORKERS,
+DC: DISTRIBUTION_CAP,
+WT: WORKING_TIME,
+TT: TOTAL_TIME
+
+Starting test run at Tuesday, November 25, 2025 - 02:44:43 PM
+
+Starting MPI+FF implementation:
+
+All steps completed at Tuesday, November 25, 2025 - 03:14:17 PM

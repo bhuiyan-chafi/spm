@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     {
         if (argc != 2)
         {
-            throw std::invalid_argument("Usage: ./verifier_ff <INPUT_FILE_PATH>");
+            throw std::invalid_argument("Usage: ./verify <INPUT_FILE_PATH>");
             return EXIT_FAILURE;
         }
         parse_cli_and_set(argc, argv);

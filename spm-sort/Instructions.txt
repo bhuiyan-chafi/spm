@@ -19,3 +19,51 @@ Compile and Run:
         bash -lc './generator 1M 256' > /dev/null 2>&1 &
 
         bash -lc './generator 1M 256' > generator.log 2>&1 &
+6. Mapping String:
+This script performs CPU topology detection and thread-to-core mapping for FastFlow. Here's what it does and why it matters:
+
+What the Script Does:
+Detects CPU Topology:
+
+Uses hwloc (Hardware Locality) tools (lstopo) to discover physical and logical cores
+Counts physical cores (actual CPU cores)
+Counts logical cores (includes hyperthreading/SMT contexts)
+Calculates contexts per core (e.g., 2 for hyperthreading)
+Creates Optimal Core Mapping:
+
+Builds a string that maps threads to cores in topologically contiguous order
+Example from the comments: Instead of OS order 0,1,2,3,4,5,6,7..., it creates 0,4,2,6,1,5,3,7...
+This groups threads by NUMA nodes and physical cores
+Updates FastFlow Configuration:
+
+Modifies config.hpp with three values:
+FF_MAPPING_STRING: The optimal thread-to-core mapping
+FF_NUM_CORES: Total logical cores available
+FF_NUM_REAL_CORES: Total physical cores available
+Why It Improves Performance:
+NUMA-Aware Placement:
+
+Places threads on cores within the same NUMA node first
+Reduces cross-NUMA memory access latency (can be 2-3x slower)
+Keeps data and computation local to the same memory controller
+Cache Optimization:
+
+Fills physical cores before using hyperthreads
+Threads on the same physical core share L1/L2 caches
+Better cache utilization for producer-consumer patterns
+Avoids OS Scheduler Chaos:
+
+Linux scheduler may move threads arbitrarily across cores
+This mapping pins threads to specific cores in optimal order
+Prevents cache thrashing from thread migration
+Hyperthread Awareness:
+
+If you have 8 physical cores with 2-way hyperthreading (16 logical cores)
+Running 8 workers? Script ensures they use 8 different physical cores
+Running 16 workers? Second round fills hyperthreads on same physical cores
+Example Impact:
+Given the topology in the comments (2 CPUs, 4 NUMA nodes, 16 logical cores):
+
+Without script: OS might place Thread 0 on Core 0, Thread 1 on Core 1 (different NUMA nodes)
+With script: Thread 0 on Core 0, Thread 1 on Core 4 (same NUMA node, different physical cores)
+This can improve FastFlow performance by 10-30% on NUMA systems by reducing memory latency and improving cache locality, which is critical for the tight communication patterns in farm pipelines.

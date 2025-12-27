@@ -131,7 +131,7 @@ void decide_distribution_cap()
      * minimum read is 8MiB
      * if you assign less/more workers than available you may get performance issues
      */
-    DISTRIBUTION_CAP = std::max(8388608UL, cap);
+    DISTRIBUTION_CAP = std::max(8388608UL, 8388608UL);
     // spdlog::info("Decided DISTRIBUTION_CAP: {}B based on your machine's L1_CACHE: {}B", DISTRIBUTION_CAP, l1_cache);
 }
 bool read_record(std::istream &stream_in, uint64_t &key_out,

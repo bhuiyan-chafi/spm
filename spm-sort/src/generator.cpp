@@ -1,9 +1,8 @@
 /**
- * @file record.hpp
  * Author: ASM CHAFIULLAH BHUIYAN, M.Sc. in Computer Science and Network, University of Pisa, Italy
  * Contact: a.bhuiyan@studenti.unipi.it
  * Created on: October 2025
- * Project: Project-1(Merge Sort) problem in Parallel and Distributed Systems course,
+ * Project: Project-2(Merge Sort) problem in Parallel and Distributed Systems course,
  * University of Pisa, Italy)
  * You are free to use, modify, and distribute this code for educational purposes.
  */
@@ -13,7 +12,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        throw std::invalid_argument("Usage: ./generator <PAYLOAD_MAX: 8~256> <RECORDS: 1M 5M 10M>");
+        throw std::invalid_argument("Usage: ./generator <PAYLOAD_MAX: 8~256> <RECORDS: 1M/5M/10M/100M>");
         return EXIT_FAILURE;
     }
     TimerClass generation_time;
