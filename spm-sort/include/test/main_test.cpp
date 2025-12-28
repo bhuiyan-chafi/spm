@@ -198,12 +198,13 @@ void sort_in_memory_test()
     }
     std::vector<Item> items;
     {
-        TimerScope st(sorting_time);
         load_all_data_in_memory(items, in);
         // spdlog::info("-> Total INPUT quantity: {}, starting MERGE_SORT", items.size());
-        std::sort(items.begin(), items.end(),
-                  [](const Item &a, const Item &b)
-                  { return a.key < b.key; });
+        TimerScope st(sorting_time);
+        {
+            std::sort(items.begin(), items.end(), [](const Item &a, const Item &b)
+                      { return a.key < b.key; });
+        }
     }
     report.WORKING_TIME = sorting_time.result();
     // spdlog::info("->[Timer:Sort] IN_MEMORY_SORT: {}", sorting_time.result());

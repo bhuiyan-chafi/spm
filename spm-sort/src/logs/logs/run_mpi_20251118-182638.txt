@@ -1,3 +1,0 @@
-[2025-11-18 18:26:49.218] [error] ==X Size mismatch: input=148086499 bytes, output=102760448 bytes X==
-[2025-11-18 18:26:49.854] [info] M: MPI_INMEM | R: 1M | PS: 256 | W: 2 | DC:8MiB | WT: 72.208 ms | TT: 11.321 s
-[2025-11-18 18:26:51.146] [info] ==> Verification Completed <==
