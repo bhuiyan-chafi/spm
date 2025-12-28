@@ -37,16 +37,10 @@ echo "==> Process has been start, wait till it finishes <=="
 echo ""
 echo "Starting test run at $th" >> logs/run_1M_$ts.txt 2>&1
 echo "" >> logs/run_1M_$ts.txt 2>&1
-echo -e "Starting Sequential implementation:\n" >> logs/run_1M_$ts.txt 2>&1
-# pure sequential version
-{
-    ./sequential 1M 256 1 $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
-    ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
-}
-echo "" >> logs/run_1M_$ts.txt 2>&1
+
 echo -e "Starting OpenMP implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 {
-    for WORKERS in 2 4 8 16 32 48 64 128;do
+    for WORKERS in 1 2 4 8 16 32 48 64 128;do
         ./openmp 1M 256 $WORKERS $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
         ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
     done
@@ -54,7 +48,7 @@ echo -e "Starting OpenMP implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 echo "" >> logs/run_1M_$ts.txt 2>&1
 echo -e "Starting FastFlow FARM implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 {
-    for WORKERS in 2 4 8 16 32 48 64 128;do
+    for WORKERS in 1 2 4 8 16 32 48 64 128;do
         ./farm 1M 256 $WORKERS $MEMORY_CAP >> logs/run_1M_$ts.txt 2>&1
         ./verify ../data/rec_1M_256.bin >> logs/run_1M_$ts.txt 2>&1
     done

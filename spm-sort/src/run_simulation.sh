@@ -43,6 +43,4 @@ if [ "$PROGRAM" == "ALL" ];then
     srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_1M_256.sh $MEMORY_CAP > /dev/null 2>&1
     srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_5M_128.sh $MEMORY_CAP > /dev/null 2>&1
     srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:10:00 bash run_10M_64.sh $MEMORY_CAP > /dev/null 2>&1
-    srun --nodes=1 --ntasks-per-node=1 --cpus-per-task=32 --time=0:30:00 bash run_100M_16.sh $MEMORY_CAP > /dev/null 2>&1
 fi
-
