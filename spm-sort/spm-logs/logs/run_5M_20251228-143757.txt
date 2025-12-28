@@ -1,0 +1,51 @@
+M: METHODS,
+R: RECORDS,
+PS: PAYLOAD_SIZE,
+W: WORKERS,
+DC: DISTRIBUTION_CAP,
+WT: WORKING_TIME,
+TT: TOTAL_TIME
+
+Starting test run at Sunday, December 28, 2025 - 02:37:57 PM
+
+Starting OpenMP implementation:
+
+[2025-12-28 14:38:03.014] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 1 | DC:8MiB | WT: 414.867 ms | TT: 5.834 s
+[2025-12-28 14:38:08.297] [info] ==> Verification Completed <==
+[2025-12-28 14:38:14.587] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 2 | DC:8MiB | WT: 375.446 ms | TT: 6.282 s
+[2025-12-28 14:38:19.902] [info] ==> Verification Completed <==
+[2025-12-28 14:38:26.130] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 4 | DC:8MiB | WT: 340.786 ms | TT: 6.208 s
+[2025-12-28 14:38:31.792] [info] ==> Verification Completed <==
+[2025-12-28 14:38:38.506] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 8 | DC:8MiB | WT: 300.625 ms | TT: 6.675 s
+[2025-12-28 14:38:43.830] [info] ==> Verification Completed <==
+[2025-12-28 14:38:49.928] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 16 | DC:8MiB | WT: 279.353 ms | TT: 6.041 s
+[2025-12-28 14:38:55.268] [info] ==> Verification Completed <==
+[2025-12-28 14:39:03.119] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 32 | DC:8MiB | WT: 261.648 ms | TT: 7.831 s
+[2025-12-28 14:39:07.882] [info] ==> Verification Completed <==
+[2025-12-28 14:39:16.811] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 48 | DC:8MiB | WT: 273.747 ms | TT: 8.896 s
+[2025-12-28 14:39:21.510] [info] ==> Verification Completed <==
+[2025-12-28 14:39:30.303] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 64 | DC:8MiB | WT: 267.631 ms | TT: 8.759 s
+[2025-12-28 14:39:35.074] [info] ==> Verification Completed <==
+[2025-12-28 14:39:47.217] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 128 | DC:8MiB | WT: 303.047 ms | TT: 12.107 s
+[2025-12-28 14:39:51.877] [info] ==> Verification Completed <==
+Starting FastFlow FARM implementation:
+
+[2025-12-28 14:39:57.565] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 1 | DC:8MiB | WT: 429.230 ms | TT: 5.632 s
+[2025-12-28 14:40:02.276] [info] ==> Verification Completed <==
+[2025-12-28 14:40:08.005] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 2 | DC:8MiB | WT: 383.799 ms | TT: 5.696 s
+[2025-12-28 14:40:12.707] [info] ==> Verification Completed <==
+[2025-12-28 14:40:18.685] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 4 | DC:8MiB | WT: 336.796 ms | TT: 5.964 s
+[2025-12-28 14:40:23.453] [info] ==> Verification Completed <==
+[2025-12-28 14:40:30.448] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 8 | DC:8MiB | WT: 292.188 ms | TT: 6.979 s
+[2025-12-28 14:40:35.238] [info] ==> Verification Completed <==
+[2025-12-28 14:40:42.194] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 16 | DC:8MiB | WT: 265.068 ms | TT: 6.935 s
+[2025-12-28 14:40:46.894] [info] ==> Verification Completed <==
+[2025-12-28 14:40:55.947] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 32 | DC:8MiB | WT: 291.283 ms | TT: 9.032 s
+[2025-12-28 14:41:00.575] [info] ==> Verification Completed <==
+[2025-12-28 14:41:10.150] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 48 | DC:8MiB | WT: 373.914 ms | TT: 9.537 s
+[2025-12-28 14:41:14.869] [info] ==> Verification Completed <==
+[2025-12-28 14:41:26.490] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 64 | DC:8MiB | WT: 363.186 ms | TT: 11.606 s
+[2025-12-28 14:41:31.094] [info] ==> Verification Completed <==
+[2025-12-28 14:41:48.271] [info] M: IN-MEMORY | R: 5M | PS: 128 | W: 128 | DC:8MiB | WT: 536.550 ms | TT: 17.163 s
+[2025-12-28 14:41:52.931] [info] ==> Verification Completed <==
+All steps completed at Sunday, December 28, 2025 - 02:41:52 PM

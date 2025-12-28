@@ -610,8 +610,8 @@ namespace farm
          * Let's do a math:
          *
          */
-        SafeQueue<Task> task_queue(DISTRIBUTION_CAP * WORKERS);
-        SafeQueue<SortedTask> sorted_queue(DISTRIBUTION_CAP * WORKERS);
+        SafeQueue<Task> task_queue(DEGREE * WORKERS * 4);
+        SafeQueue<SortedTask> sorted_queue(DEGREE * WORKERS * 4);
 
         // Write queue: Keep it minimal to avoid buffering segments
         // num_writers (2) means max 2 segments buffered in write queue
