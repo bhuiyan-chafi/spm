@@ -26,13 +26,13 @@ ts=$(date +%Y%m%d-%H%M%S)
 th=$(date +"%A, %B %d, %Y - %r")
 
 mkdir -p logs
-echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_1M_$ts.txt 2>&1
+echo -e "M: METHODS,\nR: RECORDS,\nPS: PAYLOAD_SIZE,\nW: WORKERS,\nDC: DISTRIBUTION_CAP,\nWT: WORKING_TIME,\nTT: TOTAL_TIME\n" >> logs/run_mpi_$ts.txt 2>&1
 echo ""
 echo "==> Process has been start, wait till it finishes <=="
 echo ""
-echo "Starting test run at $th" >> logs/run_1M_$ts.txt 2>&1
-echo "" >> logs/run_1M_$ts.txt 2>&1
-echo -e "Starting MPI+FF implementation:\n" >> logs/run_1M_$ts.txt 2>&1
+echo "Starting test run at $th" >> logs/run_mpi_$ts.txt 2>&1
+echo "" >> logs/run_mpi_$ts.txt 2>&1
+echo -e "Starting MPI+FF implementation:\n" >> logs/run_mpi_$ts.txt 2>&1
 
 {
     for NODES in 2 4 6 8;do
@@ -51,4 +51,4 @@ echo -e "Starting MPI+FF implementation:\n" >> logs/run_1M_$ts.txt 2>&1
 }
 
 th=$(date +"%A, %B %d, %Y - %r")
-echo "All steps completed at $th" >> logs/run_1M_$ts.txt 2>&1
+echo "All steps completed at $th" >> logs/run_mpi_$ts.txt 2>&1
