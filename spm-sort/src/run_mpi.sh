@@ -38,13 +38,13 @@ echo -e "Starting MPI+FF implementation:\n" >> logs/run_mpi_$ts.txt 2>&1
     for NODES in 2 4 6 8;do
         echo "NODE: $NODES" >> logs/run_mpi_$ts.txt 2>&1
         for WORKERS in 8 16 32 48 64;do
-            srun --nodes=$NODES --ntasks-per-node=1 --cpus-per-task=32 --time=00:15:00 --mpi=pmix ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
+            srun --nodes=$NODES --ntasks-per-node=1 --time=00:15:00 --mpi=pmix ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
             ./verify ../data/rec_1M_256.bin >> logs/run_mpi_$ts.txt 2>&1
 
-            srun --nodes=$NODES --ntasks-per-node=1 --cpus-per-task=32 --time=00:15:00 --mpi=pmix ./mpiff 5M 128 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
+            srun --nodes=$NODES --ntasks-per-node=1 --time=00:15:00 --mpi=pmix ./mpiff 5M 128 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
             ./verify ../data/rec_5M_128.bin >> logs/run_mpi_$ts.txt 2>&1
 
-            srun --nodes=$NODES --ntasks-per-node=1 --cpus-per-task=32 --time=00:15:00 --mpi=pmix ./mpiff 10M 64 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
+            srun --nodes=$NODES --ntasks-per-node=1 --time=00:15:00 --mpi=pmix ./mpiff 10M 64 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
             ./verify ../data/rec_10M_64.bin >> logs/run_mpi_$ts.txt 2>&1
         done
     done
