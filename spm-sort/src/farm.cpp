@@ -56,6 +56,7 @@ struct TaskResult
     std::vector<Item> *items = nullptr;
     bool spill = false;
     size_t segment_id = 0, slice_index = 0;
+    long long sort_time_ns = 0; // Pure worker sort time for this slice
 };
 
 // ==================== MERGE FUNCTIONS ====================
@@ -166,10 +167,23 @@ namespace ff_farm
             // }
 
             size_t segment_id = 0;
-            auto emit_segment = [&](std::unique_ptr<ITEMS> seg)
+            auto last_emit_time = std::chrono::high_resolution_clock::now();
+            bool first_segment = true;
+
+            auto emit_segment = [&](std::unique_ptr<ITEMS> seg, TimerClass &segment_timer)
             {
                 if (!seg || seg->empty())
                     return;
+
+                // Measure inter-arrival time (time since last segment was pushed to queue)
+                auto emit_start_time = std::chrono::high_resolution_clock::now();
+                if (!first_segment)
+                {
+                    auto inter_arrival_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(emit_start_time - last_emit_time);
+                    spdlog::info("[Emitter] Inter-arrival time between segment {} and {}: {}",
+                                 segment_id - 1, segment_id, TimerClass::humanize_ns(inter_arrival_ns.count()));
+                }
+
                 auto ranges = slice_ranges(seg->size(), DEGREE);
                 // spdlog::info("[Emitter] Emitting segment {} with {} items, {} slices",
                 //              segment_id, seg->size(), ranges.size());
@@ -182,32 +196,43 @@ namespace ff_farm
                         slice->push_back(std::move((*seg)[j]));
                     ff_send_out(new Task{slice, /*spill=*/!fits_in_memory, segment_id, i});
                 }
+                segment_timer.stop();
+                spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
+
+                // Update last emit time (after all slices pushed to queue)
+                last_emit_time = std::chrono::high_resolution_clock::now();
+                first_segment = false;
                 ++segment_id;
             };
 
             auto segment = std::make_unique<ITEMS>();
             uint64_t accumulator = 0ULL;
+            TimerClass segment_timer;
+            segment_timer.start();
+
             while (true)
             {
                 uint64_t key;
                 CompactPayload payload;
                 if (!read_record(in, key, payload))
                 {
-                    emit_segment(std::move(segment));
+                    emit_segment(std::move(segment), segment_timer);
                     return EOS;
                 }
                 const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
                 if (accumulator + record_size > DISTRIBUTION_CAP && !segment->empty())
                 {
-                    emit_segment(std::move(segment));
+                    emit_segment(std::move(segment), segment_timer);
                     segment = std::make_unique<ITEMS>();
                     accumulator = 0ULL;
+                    segment_timer = TimerClass();
+                    segment_timer.start();
                 }
                 segment->push_back(Item{key, std::move(payload)});
                 accumulator += record_size;
             }
         }
-        // void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
+        void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
 
     private:
         std::ifstream in;
@@ -231,19 +256,23 @@ namespace ff_farm
             // spdlog::info("[Worker-{}] Processing segment_{} slice_{} ({} items)",
             //              idx_, task->segment_id, task->slice_index, local_items->size());
 
-            timer_work.start();
+            TimerClass slice_timer;
+            slice_timer.start();
             std::sort(local_items->begin(), local_items->end(),
                       [](const Item &a, const Item &b)
                       { return a.key < b.key; });
-            timer_work.stop();
+            slice_timer.stop();
+
+            timer_work.add_elapsed(slice_timer.elapsed_ns());
 
             // spdlog::info("[Worker-{}] Completed segment_{} slice_{} in {}",
-            //              idx_, task->segment_id, task->slice_index, timer_work.result());
+            //              idx_, task->segment_id, task->slice_index, slice_timer.result());
 
             auto *result = new TaskResult();
             result->spill = task->spill;
             result->segment_id = task->segment_id;
             result->slice_index = task->slice_index;
+            result->sort_time_ns = slice_timer.elapsed_ns().count();
             // if it was within memory operation
             if (!task->spill)
             {
@@ -293,16 +322,42 @@ namespace ff_farm
             saw_spill = saw_spill || result->spill;
             if (result->kind == TaskResult::Kind::InMemBatch)
             {
+                // IN-MEMORY mode: track wall-clock parallel time
+                auto &seg = segments[result->segment_id];
+                if (!seg.timing_started)
+                {
+                    seg.parallel_timer.start();
+                    seg.timing_started = true;
+                }
+                seg.slices.push_back(SortedTask{result->items, result->segment_id, result->slice_index});
+                seg.total_cpu_time_ns += result->sort_time_ns;
+
+                // Check if segment complete (DEGREE slices received)
+                if (seg.slices.size() == DEGREE)
+                {
+                    seg.parallel_timer.stop();
+                    spdlog::info("[Workers] Segment {} sort time: {}",
+                                 result->segment_id,
+                                 TimerClass::humanize_ns(seg.total_cpu_time_ns));
+                    segments.erase(result->segment_id);
+                }
+
                 // take the items to perform final k-way merge
                 inmem_batches.emplace_back(result->items);
                 // spdlog::info("[Collector] Received in-memory batch, total batches: {}", inmem_batches.size());
             }
             else // TaskResult::Kind::SortedSlice
             {
-                // OOC mode: accumulate slices by segment_id for coordinator batching
+                // OOC mode: track wall-clock parallel time
                 SortedTask sorted_slice{result->items, result->segment_id, result->slice_index};
                 auto &seg = segments[result->segment_id];
+                if (!seg.timing_started)
+                {
+                    seg.parallel_timer.start();
+                    seg.timing_started = true;
+                }
                 seg.slices.push_back(sorted_slice);
+                seg.total_cpu_time_ns += result->sort_time_ns;
 
                 // spdlog::info("[Collector] Segment {} slice {} received ({}/{} slices)",
                 //              result->segment_id, result->slice_index, seg.slices.size(), DEGREE);
@@ -310,6 +365,11 @@ namespace ff_farm
                 // When segment complete (DEGREE slices received), write once
                 if (seg.slices.size() == DEGREE)
                 {
+                    seg.parallel_timer.stop();
+                    spdlog::info("[Workers] Segment {} sort time: {}",
+                                 result->segment_id,
+                                 TimerClass::humanize_ns(seg.total_cpu_time_ns));
+
                     // spdlog::info("[Collector] Segment {} complete ({} slices) - Writing to disk",
                     //              result->segment_id, seg.slices.size());
                     std::string run_path = flush_segment_to_disk(seg.slices);
@@ -432,7 +492,7 @@ namespace ff_farm
                 out.close();
             }
 
-            // spdlog::info("[Timer] Collector total: {}", timer_collect.result());
+            spdlog::info("[Timer] Collector total: {}", timer_collect.result());
         }
 
     private:
@@ -445,6 +505,9 @@ namespace ff_farm
         struct SegmentInfo
         {
             std::vector<SortedTask> slices;
+            TimerClass parallel_timer;
+            bool timing_started = false;
+            long long total_cpu_time_ns = 0;
         };
         std::map<size_t, SegmentInfo> segments;
     };

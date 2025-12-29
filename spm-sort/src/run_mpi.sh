@@ -37,7 +37,7 @@ echo -e "Starting MPI+FF implementation:\n" >> logs/run_mpi_$ts.txt 2>&1
 {
     for NODES in 2 4 6 8;do
         echo "NODE: $NODES" >> logs/run_mpi_$ts.txt 2>&1
-        for WORKERS in 8 16 32 48 64;do
+        for WORKERS in 2 4 6 8;do
             srun --nodes=$NODES --ntasks-per-node=1 --time=00:15:00 --mpi=pmix ./mpiff 1M 256 $WORKERS $MEMORY_CAP >> logs/run_mpi_$ts.txt 2>&1
             ./verify ../data/rec_1M_256.bin >> logs/run_mpi_$ts.txt 2>&1
 

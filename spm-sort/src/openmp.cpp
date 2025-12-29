@@ -293,9 +293,13 @@ namespace farm
 
         while (true)
         {
+            TimerClass segment_timer;
+            segment_timer.start();
+
             auto segment = reader.read_next_segment();
             if (!segment)
                 break;
+
             // makes each slice = size of l1_data_cache of executing machine
             auto ranges = slice_ranges(segment->size(), DEGREE);
 
@@ -309,6 +313,9 @@ namespace farm
 
                 task_queue.push(Task{std::move(slice), segment_id, i, false});
             }
+
+            segment_timer.stop();
+            spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
             segment_id++;
         }
 
@@ -443,6 +450,8 @@ namespace farm
             std::vector<SortedTask> tasks;
             size_t expected_slices;
             uint64_t total_bytes = 0;
+            TimerClass parallel_timer;
+            bool timing_started = false;
         };
 
         std::map<size_t, SegmentInfo> segments;
@@ -481,6 +490,14 @@ namespace farm
 
             // Add to segment
             auto &seg_info = segments[current_segment_id];
+
+            // Start timing on first slice
+            if (!seg_info.timing_started)
+            {
+                seg_info.parallel_timer.start();
+                seg_info.timing_started = true;
+            }
+
             seg_info.tasks.push_back(std::move(sorted));
             seg_info.total_bytes += task_bytes;
             seg_info.expected_slices = slices_per_segment;
@@ -488,6 +505,10 @@ namespace farm
             // Check if segment is complete
             if (seg_info.tasks.size() == seg_info.expected_slices)
             {
+                seg_info.parallel_timer.stop();
+                spdlog::info("[Workers] Segment {} parallel time: {}",
+                             current_segment_id, seg_info.parallel_timer.result());
+
                 // double mb_size = static_cast<double>(seg_info.total_bytes) / (1024.0 * 1024.0);
                 // size_t task_count = seg_info.tasks.size();
 
@@ -610,8 +631,8 @@ namespace farm
          * Let's do a math:
          *
          */
-        SafeQueue<Task> task_queue(DEGREE * WORKERS * 4);
-        SafeQueue<SortedTask> sorted_queue(DEGREE * WORKERS * 4);
+        SafeQueue<Task> task_queue(DEGREE * WORKERS * 128);
+        SafeQueue<SortedTask> sorted_queue(DEGREE * WORKERS * 128);
 
         // Write queue: Keep it minimal to avoid buffering segments
         // num_writers (2) means max 2 segments buffered in write queue

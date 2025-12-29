@@ -29,7 +29,7 @@ openmp:
 	$(COMPILER) $(FLAGS) $(INCLUDES) $(LINKS) -o ./openmp
 
 # --- farm ---
-farm: FLAGS += -pthread
+farm: FLAGS += -pthread -ffast-math
 farm: INCLUDES += -I../include/fastflow/ -I../util/
 farm: LINKS += ../include/main.cpp ./farm.cpp
 farm:
