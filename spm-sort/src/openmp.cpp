@@ -1,5 +1,9 @@
 #include "main.hpp"
 
+// Global timing storage for pipeline stages
+static std::string g_emitter_time = "0";
+static std::string g_coordinator_time = "0";
+
 namespace farm
 {
     using Items = std::vector<Item>;
@@ -322,6 +326,9 @@ namespace farm
         // Send poison pills
         for (size_t i = 0; i < num_workers; ++i)
             task_queue.push(Task{nullptr, 0, 0, true});
+
+        g_emitter_time = timer.result();
+        spdlog::info("[Timer] Emitter: {}", g_emitter_time);
     }
 
     void worker_stage(SafeQueue<Task> &task_queue, SafeQueue<SortedTask> &sorted_queue,
@@ -597,6 +604,8 @@ namespace farm
             }
         }
 
+        g_coordinator_time = timer.result();
+        spdlog::info("[Timer] Coordinator: {}", g_coordinator_time);
         // spdlog::info("[Coordinator] Completed");
     }
 
@@ -756,6 +765,6 @@ int main(int argc, char **argv)
     // spdlog::info("->[Timer] Total execution time: {}", total_time.result());
     // spdlog::info("==> Completed successfully -> {} <==", DATA_OUTPUT);
     report.TOTAL_TIME = total_time.result();
-    spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}", report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS, DISTRIBUTION_CAP / IN_MB, report.WORKING_TIME, report.TOTAL_TIME);
+    spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | ET: {} | WT: {} | CT: {} | TT: {}", report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS, DISTRIBUTION_CAP / IN_MB, g_emitter_time, report.WORKING_TIME, g_coordinator_time, report.TOTAL_TIME);
     return EXIT_SUCCESS;
 }

@@ -1,5 +1,9 @@
 #include "main.hpp"
 
+// Global timing storage for pipeline stages
+static std::string g_emitter_time = "0";
+static std::string g_collector_time = "0";
+
 /**
  * -------------- Utility Functions --------------
  * @param slice_ranges: hold the ranges of data for a worker
@@ -167,22 +171,11 @@ namespace ff_farm
             // }
 
             size_t segment_id = 0;
-            auto last_emit_time = std::chrono::high_resolution_clock::now();
-            bool first_segment = true;
 
             auto emit_segment = [&](std::unique_ptr<ITEMS> seg, TimerClass &segment_timer)
             {
                 if (!seg || seg->empty())
                     return;
-
-                // Measure inter-arrival time (time since last segment was pushed to queue)
-                auto emit_start_time = std::chrono::high_resolution_clock::now();
-                if (!first_segment)
-                {
-                    auto inter_arrival_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(emit_start_time - last_emit_time);
-                    spdlog::info("[Emitter] Inter-arrival time between segment {} and {}: {}",
-                                 segment_id - 1, segment_id, TimerClass::humanize_ns(inter_arrival_ns.count()));
-                }
 
                 auto ranges = slice_ranges(seg->size(), DEGREE);
                 // spdlog::info("[Emitter] Emitting segment {} with {} items, {} slices",
@@ -198,10 +191,6 @@ namespace ff_farm
                 }
                 segment_timer.stop();
                 spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
-
-                // Update last emit time (after all slices pushed to queue)
-                last_emit_time = std::chrono::high_resolution_clock::now();
-                first_segment = false;
                 ++segment_id;
             };
 
@@ -232,7 +221,11 @@ namespace ff_farm
                 accumulator += record_size;
             }
         }
-        void svc_end() override { spdlog::info("[Timer] Emitter: {}", timer_emit.result()); }
+        void svc_end() override
+        {
+            g_emitter_time = timer_emit.result();
+            spdlog::info("[Timer] Emitter: {}", g_emitter_time);
+        }
 
     private:
         std::ifstream in;
@@ -492,7 +485,8 @@ namespace ff_farm
                 out.close();
             }
 
-            spdlog::info("[Timer] Collector total: {}", timer_collect.result());
+            g_collector_time = timer_collect.result();
+            spdlog::info("[Timer] Collector: {}", g_collector_time);
         }
 
     private:
@@ -563,8 +557,8 @@ int main(int argc, char **argv)
         report.WORKING_TIME = timings->total_str();
     if (INPUT_BYTES > MEMORY_CAP)
         report.METHOD = "MEMORY_OOC";
-    spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | WT: {} | TT: {}",
+    spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | ET: {} | WT: {} | CT: {} | TT: {}",
                  report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS,
-                 DISTRIBUTION_CAP / IN_MB, report.WORKING_TIME, report.TOTAL_TIME);
+                 DISTRIBUTION_CAP / IN_MB, g_emitter_time, report.WORKING_TIME, g_collector_time, report.TOTAL_TIME);
     return EXIT_SUCCESS;
 }

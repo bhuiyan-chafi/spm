@@ -244,37 +244,6 @@ namespace
         return result;
     }
 
-    // Async receive: post non-blocking receive for worker result header
-    void post_async_receive(int worker_rank, MessageHeader *header_buffer, MPI_Request *request, MPI_Comm comm)
-    {
-        MPI_Irecv(header_buffer,
-                  sizeof(MessageHeader),
-                  MPI_BYTE,
-                  worker_rank,
-                  static_cast<int>(MsgTag::ResultHeader),
-                  comm,
-                  request);
-    }
-
-    // Complete async receive: finish header, then blocking receive items
-    WorkPackage complete_async_receive(int worker_rank, const MessageHeader &header, MPI_Comm comm)
-    {
-        Items items;
-        receive_items(worker_rank,
-                      items,
-                      header.item_count,
-                      MsgTag::ResultKey,
-                      MsgTag::ResultLen,
-                      MsgTag::ResultPayload,
-                      comm);
-
-        WorkPackage result;
-        result.spill = header.spill != 0;
-        result.segment_id = header.segment_id;
-        result.items = std::move(items);
-        return result;
-    }
-
     void send_terminate(int dest, MPI_Comm comm)
     {
         MessageHeader header{};
@@ -522,39 +491,10 @@ namespace
 
         // Collect results and send more work
         collector_timer.start();
-
-        // Setup async receives: one per active worker
-        const int num_workers = world_size - 1;
-        std::vector<MPI_Request> recv_requests(num_workers, MPI_REQUEST_NULL);
-        std::vector<MessageHeader> recv_buffers(num_workers);
-        std::vector<bool> worker_active(num_workers, false);
-
-        // Pre-post receives for all workers that have work
-        for (int rank = 1; rank < world_size; ++rank)
-        {
-            int idx = rank - 1;
-            if (tasks_outstanding > 0) // Only post if we expect results
-            {
-                post_async_receive(rank, &recv_buffers[idx], &recv_requests[idx], MPI_COMM_WORLD);
-                worker_active[idx] = true;
-            }
-        }
-
         while (tasks_outstanding > 0)
         {
-            // Wait for ANY worker to complete
-            int completed_idx;
-            MPI_Status status;
-            MPI_Waitany(num_workers, recv_requests.data(), &completed_idx, &status);
-
-            if (completed_idx == MPI_UNDEFINED)
-                break; // No active requests
-
-            int source_rank = completed_idx + 1;
-            worker_active[completed_idx] = false;
-
-            // Complete the receive (get items)
-            WorkPackage result = complete_async_receive(source_rank, recv_buffers[completed_idx], MPI_COMM_WORLD);
+            int source_rank = 0;
+            WorkPackage result = receive_result(MPI_COMM_WORLD, source_rank);
             tasks_outstanding--;
             idle_workers.push(source_rank);
 
@@ -578,13 +518,8 @@ namespace
                 inmem_batches.push_back(std::make_unique<Items>(std::move(result.items)));
             }
 
-            // Try to send more work to this now-idle worker
-            if (read_and_send_segment())
-            {
-                // Sent new work, re-post receive for this worker
-                post_async_receive(source_rank, &recv_buffers[completed_idx], &recv_requests[completed_idx], MPI_COMM_WORLD);
-                worker_active[completed_idx] = true;
-            }
+            // Try to send more work
+            read_and_send_segment();
         }
 
         // Terminate workers
@@ -686,8 +621,8 @@ namespace
         g_emitter_time = emitter_timer.result();
         g_collector_time = collector_timer.result();
 
-        // spdlog::info("[Timer] Master Emitter: {}", g_emitter_time);
-        // spdlog::info("[Timer] Master Collector: {}", g_collector_time);
+        spdlog::info("[Timer] Master Emitter: {}", g_emitter_time);
+        spdlog::info("[Timer] Master Collector: {}", g_collector_time);
     }
 
     // ==================== WORKER NODE ====================
