@@ -215,35 +215,6 @@ namespace
         send_items(dest, result.items, MsgTag::ResultKey, MsgTag::ResultLen, MsgTag::ResultPayload, comm);
     }
 
-    WorkPackage receive_result(MPI_Comm comm, int &source_rank)
-    {
-        MPI_Status status;
-        MessageHeader header{};
-        MPI_Recv(&header,
-                 sizeof(header),
-                 MPI_BYTE,
-                 MPI_ANY_SOURCE,
-                 static_cast<int>(MsgTag::ResultHeader),
-                 comm,
-                 &status);
-        source_rank = status.MPI_SOURCE;
-
-        Items items;
-        receive_items(source_rank,
-                      items,
-                      header.item_count,
-                      MsgTag::ResultKey,
-                      MsgTag::ResultLen,
-                      MsgTag::ResultPayload,
-                      comm);
-
-        WorkPackage result;
-        result.spill = header.spill != 0;
-        result.segment_id = header.segment_id;
-        result.items = std::move(items);
-        return result;
-    }
-
     // Async receive: post non-blocking receive for worker result header
     void post_async_receive(int worker_rank, MessageHeader *header_buffer, MPI_Request *request, MPI_Comm comm)
     {
