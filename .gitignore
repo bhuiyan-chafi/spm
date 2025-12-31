@@ -1,2 +1,4 @@
 .vscode
 /spm-sort/include/fastflow/
+/spm-sort/include/spdlog/
+

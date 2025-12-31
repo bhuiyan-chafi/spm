@@ -319,7 +319,7 @@ namespace farm
             }
 
             segment_timer.stop();
-            spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
+            // spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
             segment_id++;
         }
 
@@ -328,7 +328,7 @@ namespace farm
             task_queue.push(Task{nullptr, 0, 0, true});
 
         g_emitter_time = timer.result();
-        spdlog::info("[Timer] Emitter: {}", g_emitter_time);
+        // spdlog::info("[Timer] Emitter: {}", g_emitter_time);
     }
 
     void worker_stage(SafeQueue<Task> &task_queue, SafeQueue<SortedTask> &sorted_queue,
@@ -513,8 +513,8 @@ namespace farm
             if (seg_info.tasks.size() == seg_info.expected_slices)
             {
                 seg_info.parallel_timer.stop();
-                spdlog::info("[Workers] Segment {} parallel time: {}",
-                             current_segment_id, seg_info.parallel_timer.result());
+                // spdlog::info("[Workers] Segment {} parallel time: {}",
+                //              current_segment_id, seg_info.parallel_timer.result());
 
                 // double mb_size = static_cast<double>(seg_info.total_bytes) / (1024.0 * 1024.0);
                 // size_t task_count = seg_info.tasks.size();
@@ -605,7 +605,7 @@ namespace farm
         }
 
         g_coordinator_time = timer.result();
-        spdlog::info("[Timer] Coordinator: {}", g_coordinator_time);
+        // spdlog::info("[Timer] Coordinator: {}", g_coordinator_time);
         // spdlog::info("[Coordinator] Completed");
     }
 
