@@ -1,0 +1,2 @@
+srun --nodes=1 --ntasks=1 --cpus-per-task=8 --time=00:05:00 ./openmp 1M 256 8 32 > logs/omp_1M_256_TH_8.txt 2>&1 &
+
