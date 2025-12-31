@@ -190,7 +190,7 @@ namespace ff_farm
                     ff_send_out(new Task{slice, /*spill=*/!fits_in_memory, segment_id, i});
                 }
                 segment_timer.stop();
-                spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
+                // spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
                 ++segment_id;
             };
 
@@ -224,7 +224,7 @@ namespace ff_farm
         void svc_end() override
         {
             g_emitter_time = timer_emit.result();
-            spdlog::info("[Timer] Emitter: {}", g_emitter_time);
+            // spdlog::info("[Timer] Emitter: {}", g_emitter_time);
         }
 
     private:
@@ -329,9 +329,9 @@ namespace ff_farm
                 if (seg.slices.size() == DEGREE)
                 {
                     seg.parallel_timer.stop();
-                    spdlog::info("[Workers] Segment {} sort time: {}",
-                                 result->segment_id,
-                                 TimerClass::humanize_ns(seg.total_cpu_time_ns));
+                    // spdlog::info("[Workers] Segment {} sort time: {}",
+                    //              result->segment_id,
+                    //              TimerClass::humanize_ns(seg.total_cpu_time_ns));
                     segments.erase(result->segment_id);
                 }
 
@@ -359,9 +359,9 @@ namespace ff_farm
                 if (seg.slices.size() == DEGREE)
                 {
                     seg.parallel_timer.stop();
-                    spdlog::info("[Workers] Segment {} sort time: {}",
-                                 result->segment_id,
-                                 TimerClass::humanize_ns(seg.total_cpu_time_ns));
+                    // spdlog::info("[Workers] Segment {} sort time: {}",
+                    //              result->segment_id,
+                    //              TimerClass::humanize_ns(seg.total_cpu_time_ns));
 
                     // spdlog::info("[Collector] Segment {} complete ({} slices) - Writing to disk",
                     //              result->segment_id, seg.slices.size());
@@ -486,7 +486,7 @@ namespace ff_farm
             }
 
             g_collector_time = timer_collect.result();
-            spdlog::info("[Timer] Collector: {}", g_collector_time);
+            // spdlog::info("[Timer] Collector: {}", g_collector_time);
         }
 
     private:
