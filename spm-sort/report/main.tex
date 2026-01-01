@@ -3,7 +3,7 @@
 %%%%%%%% CREATE DOCUMENT STRUCTURE %%%%%%%%
 %% Language and font encodings
 \usepackage[english]{babel}
-\usepackage[utf8x]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 %\usepackage{subfig}
 
@@ -298,14 +298,16 @@ For number of records \texttt{N}, we are considering 1M(million), 5M and 10M wit
     \centering
     \includegraphics[width=0.6\textwidth]{OMP_WT.png}
     \caption{OpenMP Working Time}
+    \label{fig:omp_wt}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{FF_WT.png}
     \caption{FastFlow Working Time}
+    \label{fig:ff_wt}
 \end{figure}
-\noindent From \texttt{Figure 1 \& 2} we can clearly state that parallelism is not \texttt{proportional} to number of workers. We started having improved working time as number of workers increases, but after a certain point it starts decreasing again. This explains the issue of \texttt{oversubscription}. In our \texttt{spmcluster}, we have 20 physical cores with 2 threads in each core making it 40 logical cores. The machine also has 640KiB of data cache for each physical core with NUMA aware technology. From the table we can see that the program performs optimally with 32-64 workers depending on the workload, and the performance drastically degrades with 128 workers. This is clearly an oversubscription issue where the number of threads exceeds available logical cores, causing excessive context switching and cache thrashing.The FastFlow implementation shows exact same behavior but it beats the performance of OpenMP by a few milliseconds. Even though OpenMP beats FastFlow by a few milliseconds again in total execution time, with more optimization we can achieve similar or even better results.\\[5pt]
+\noindent Figures \ref{fig:omp_wt} and \ref{fig:ff_wt} we can clearly state that parallelism is not \texttt{proportional} to number of workers. We started having improved working time as number of workers increases, but after a certain point it starts decreasing again. This explains the issue of \texttt{oversubscription}. In our \texttt{spmcluster}, we have 20 physical cores with 2 threads in each core making it 40 logical cores. The machine also has 640KiB of data cache for each physical core with NUMA aware technology. From the table we can see that the program performs optimally with 32-64 workers depending on the workload, and the performance drastically degrades with 128 workers. This is clearly an oversubscription issue where the number of threads exceeds available logical cores, causing excessive context switching and cache thrashing.The FastFlow implementation shows exact same behavior but it beats the performance of OpenMP by a few milliseconds. Even though OpenMP beats FastFlow by a few milliseconds again in total execution time, with more optimization we can achieve similar or even better results.\\[5pt]
 The program behavior also changes based on Number of records and payload size. For each computation, there is a fixed cycle cost which increases with number of records. If we have small payload size, the workers can accumulate more records into its private memory(caches). Processing those records will have more fixed overhead than less items in the private memory(caches). Also processing more items increases possibility of higher cache misses. But it is not universal that with more records we will always get bad performance, it is always a trade-off.
 
 \subsubsection{Speedup and Efficiency}
@@ -314,6 +316,7 @@ The program behavior also changes based on Number of records and payload size. F
     \centering
     \includegraphics[width=0.8\textwidth]{Speedup.png}
     \caption{Speedup}
+    \label{fig:speedup}
 \end{figure}
 \noindent By varying number of records and payload size we can see that for different inputs we have optimal speedup with different number of workers. For example: we achieved the highest speedup for 1M records of 256 bytes payload with 64 workers in OpenMP. Also with FastFlow we achieved highest speedup for 1M\_256 with 64 workers. But for 5M records with 128 bytes payload the result changes significantly. We achieved highest speedup with 64 workers in OpenMP and only with 16 workers in FastFlow. The same is for 10 million records with 64 bytes payload, we achieved highest speedup with 32 workers in OpenMP and with 16 workers in FastFlow. This means FastFlow is more efficient for our implementation.\\[10pt]
 For the efficiency [\texttt{Figure 3}] we see a continuously degrading curve. This clearly demonstrates that achieving speedup with $N$ workers does not guarantee efficient resource utilization. We may be paying a significant cost in additional workers for marginal performance improvements. The critical question becomes: what is the optimal parallelism degree $\rho$ that balances speedup and efficiency? There is no universal answer, as the choice depends on optimization criteria and constraints. We select $\rho$ based on the scenario:
@@ -336,6 +339,7 @@ For the efficiency [\texttt{Figure 3}] we see a continuously degrading curve. Th
     \centering
     \includegraphics[width=0.8\textwidth]{Efficiency.png}
     \caption{Efficiency}
+    \label{fig:efficiency}
 \end{figure}
 
 \subsubsection{Strong vs Weak Scalability}
@@ -346,13 +350,15 @@ From the equation and table\texttt{[Figure 5]} data we can say that the \texttt{
     \centering
     \includegraphics[width=0.5\textwidth]{service_time_ff.png}
     \caption{Service Time MPI+FastFlow(FARM)}
+    \label{fig:service_time_ff}
 \end{figure}
 \noindent
 performance will always be limited by the sequential part of the code. Since our program has dependencies on different memory levels like\texttt{Storage Devices, DRAMs, Caches} and \texttt{Concurrent Access on Data}, we can only scale a portion of the code to achieve optimal performance.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{strong_scalability_curve.png}
-    \caption{Strong Scalability Curve - MPI+FastFlow(FARM)}
+    \caption{Strong Scalability Curve - MPI+FastFlow}
+    \label{fig:strong_scalability}
 \end{figure}
 \noindent
 If we consider $f$ as the sequential part of the code, we can derive the equation from \texttt{Amdahl's Law}:
@@ -369,7 +375,8 @@ From the table we can see the following behavior:
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{weak_scalability.png}
-    \caption{Weak Scalability Curve - MPI+FastFlow(FARM)}
+    \caption{Weak Scalability Curve - MPI+FastFlow}
+    \label{fig:weak_scalability}
 \end{figure}
 
 \section{Final Analysis}
@@ -391,6 +398,7 @@ This is the \texttt{Service-Time} of our \texttt{FARM} implementation using Fast
     \centering
     \includegraphics[width=0.8\textwidth]{ooc.png}
     \caption{Memory Out of Core operation on 3.6GiB file with 1GiB Memory}
+    \label{fig:ooc}
 \end{figure}
 \noindent
 \texttt{Figure [8]} demonstrates that we can sort large files in \texttt{OOC} mode without paralyzing the whole system. Even though the memory cap is 1GiB, the program is consuming more than 1GiB. It is very common because there are overheads through out the processing. A breif study is given under \texttt{/src/discussions/} with test codes to prove the point.
@@ -407,7 +415,7 @@ What do we see from the outputs? We can see that a significant cost is being pai
 \subsection{Problems \& Adopted Solutions}
 During the development I have faced several problems regarding data-structure, load-distribution, synchronization and I/O handling. Each of these problems have been solved based on the theoretical part we are taught during the course. Even though I cannot say I have solved 100\% of them, but I can assure you this is a good starting point. From this point it can be more optimized. Lets discuss the problems and solutions.
 \subsubsection{Data Structure}
-In the initial implementation I used \texttt{std::vector<uint8\_t>} for storing variable-length payloads, which created a critical memory consumption issue. The structure \texttt{std::vector<Item>} contained items where each Item had a \texttt{std::vector<uint8\_t> payload}, resulting in nested vectors. The fundamental problem is that \texttt{std::vector<uint\\8\_t>} consumes 24 bytes of overhead per instance to store internal pointers (begin, end, capacity) and bookkeeping information, while a simple \texttt{uint8\_t*} pointer consumes only 8 bytes. For large datasets, this overhead becomes catastrophic.
+In the initial implementation I used \texttt{std::vector<uint8\_t>} for storing variable-length payloads, which created a critical memory consumption issue. The structure \texttt{std::vector<Item>} contained items where each Item had a \texttt{std::vector<> payload}, resulting in nested vectors. The fundamental problem is that \texttt{std::vector<uint8\_t>} consumes 24 bytes of overhead per instance to store internal pointers (begin, end, capacity) and bookkeeping information, while a simple \texttt{uint8\_t*} pointer consumes only 8 bytes. For large datasets, this overhead becomes catastrophic.
     {
         \renewcommand{\thefootnote}{**}Experimental measurements\footnote{\textbf{the experimental program can be found under /src/discussion/tests}}
     }

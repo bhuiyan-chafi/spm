@@ -189,33 +189,36 @@ namespace ff_farm
                         slice->push_back(std::move((*seg)[j]));
                     ff_send_out(new Task{slice, /*spill=*/!fits_in_memory, segment_id, i});
                 }
-                segment_timer.stop();
-                // spdlog::info("[Emitter] Segment {} read+emit: {}", segment_id, segment_timer.result());
                 ++segment_id;
             };
 
             auto segment = std::make_unique<ITEMS>();
             uint64_t accumulator = 0ULL;
             TimerClass segment_timer;
-            segment_timer.start();
 
             while (true)
             {
                 uint64_t key;
                 CompactPayload payload;
-                if (!read_record(in, key, payload))
+
+                segment_timer.start();
+                bool success = read_record(in, key, payload);
+                segment_timer.stop();
+
+                if (!success)
                 {
+                    spdlog::info("[Emitter] Segment {} disk read time: {}", segment_id, segment_timer.result());
                     emit_segment(std::move(segment), segment_timer);
                     return EOS;
                 }
                 const uint64_t record_size = sizeof(uint64_t) + sizeof(uint32_t) + payload.size();
                 if (accumulator + record_size > DISTRIBUTION_CAP && !segment->empty())
                 {
+                    spdlog::info("[Emitter] Segment {} disk read time: {}", segment_id, segment_timer.result());
                     emit_segment(std::move(segment), segment_timer);
                     segment = std::make_unique<ITEMS>();
                     accumulator = 0ULL;
                     segment_timer = TimerClass();
-                    segment_timer.start();
                 }
                 segment->push_back(Item{key, std::move(payload)});
                 accumulator += record_size;
@@ -319,7 +322,6 @@ namespace ff_farm
                 auto &seg = segments[result->segment_id];
                 if (!seg.timing_started)
                 {
-                    seg.parallel_timer.start();
                     seg.timing_started = true;
                 }
                 seg.slices.push_back(SortedTask{result->items, result->segment_id, result->slice_index});
@@ -328,10 +330,9 @@ namespace ff_farm
                 // Check if segment complete (DEGREE slices received)
                 if (seg.slices.size() == DEGREE)
                 {
-                    seg.parallel_timer.stop();
-                    // spdlog::info("[Workers] Segment {} sort time: {}",
-                    //              result->segment_id,
-                    //              TimerClass::humanize_ns(seg.total_cpu_time_ns));
+                    spdlog::info("[Workers] Segment {} accumulated CPU time: {}",
+                                 result->segment_id,
+                                 TimerClass::humanize_ns(seg.total_cpu_time_ns));
                     segments.erase(result->segment_id);
                 }
 
@@ -346,7 +347,6 @@ namespace ff_farm
                 auto &seg = segments[result->segment_id];
                 if (!seg.timing_started)
                 {
-                    seg.parallel_timer.start();
                     seg.timing_started = true;
                 }
                 seg.slices.push_back(sorted_slice);
@@ -358,10 +358,6 @@ namespace ff_farm
                 // When segment complete (DEGREE slices received), write once
                 if (seg.slices.size() == DEGREE)
                 {
-                    seg.parallel_timer.stop();
-                    // spdlog::info("[Workers] Segment {} sort time: {}",
-                    //              result->segment_id,
-                    //              TimerClass::humanize_ns(seg.total_cpu_time_ns));
 
                     // spdlog::info("[Collector] Segment {} complete ({} slices) - Writing to disk",
                     //              result->segment_id, seg.slices.size());
@@ -499,7 +495,6 @@ namespace ff_farm
         struct SegmentInfo
         {
             std::vector<SortedTask> slices;
-            TimerClass parallel_timer;
             bool timing_started = false;
             long long total_cpu_time_ns = 0;
         };
@@ -557,6 +552,20 @@ int main(int argc, char **argv)
         report.WORKING_TIME = timings->total_str();
     if (INPUT_BYTES > MEMORY_CAP)
         report.METHOD = "MEMORY_OOC";
+
+    // Calculate overlapped (parallel) working time - max of all workers
+    long long max_worker_time_ns = 0;
+    if (timings)
+    {
+        for (size_t i = 0; i < WORKERS; ++i)
+        {
+            long long wt = timings->per_worker(i);
+            if (wt > max_worker_time_ns)
+                max_worker_time_ns = wt;
+        }
+        spdlog::info("Workers overlapped (parallel) time: {}", TimerClass::humanize_ns(max_worker_time_ns));
+    }
+
     spdlog::info("M: {} | R: {} | PS: {} | W: {} | DC:{}MiB | ET: {} | WT: {} | CT: {} | TT: {}",
                  report.METHOD, report.RECORDS, report.PAYLOAD_SIZE, report.WORKERS,
                  DISTRIBUTION_CAP / IN_MB, g_emitter_time, report.WORKING_TIME, g_collector_time, report.TOTAL_TIME);
