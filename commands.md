@@ -1,6 +1,6 @@
 # Linux commands
 
-Following commands will produce stated results.
+Following commands will produce stated results. **But these are not project related commands, instead for tests. If you are looking for project related commands please check this [file](./spm-sort/README.md)**.
 
 ## Your CPU details
 
@@ -28,9 +28,7 @@ In my machine I have avx and avx2 but no avx512f which means I have max vector r
 
 ## Sync files local<->remote
 
-    ```bash
     rsync -avz Downloads/spmcode7 chafi@131.114.52.245:/home/chafi/spm
-    ```
 
 ## Compile the code and give the executable a name
 
@@ -60,14 +58,10 @@ In my machine I have avx and avx2 but no avx512f which means I have max vector r
 
 We will use `spdlog` for logging our programs. In my ubuntu machine I am going to use the library `libspdlog-dev` for that. Here is how I configured it:
 
-    ```bash
     sudo apt install libspdlog-dev libfmt-dev
-    ```
 
 After that in your c++ programs use the header:
 
-    ```cpp
     #include <spdlog/spdlog.h>
     //and for compilation
     mpic++ -O2 mpi_ring_com.cpp -o mpi_ring_com -lspdlog -lfmt
-    ```

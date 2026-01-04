@@ -106,7 +106,7 @@ void parse_cli_and_set(int argc, char **argv)
                 // spdlog::warn("Input size exceeds MEMORY_CAP considering overhead, you should not process it within memory.");
             }
         }
-        // DEGREE = WORKER^WORKER
+        // DEGREE = WORKERS^2
         DEGREE = static_cast<uint64_t>(pow(static_cast<double>(WORKERS), static_cast<double>(2)));
         decide_distribution_cap();
         // spdlog::info("Choosen Degree:{}", DEGREE);
