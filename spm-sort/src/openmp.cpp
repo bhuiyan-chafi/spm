@@ -126,7 +126,7 @@ namespace farm
             if (!in)
                 throw std::runtime_error("cannot open input: " + path);
         }
-
+        // We are making sure a 0 copy transfer through unique_ptr. Each segment will have a unique pointer to them, which will be transferred among stages.
         std::unique_ptr<Items> read_next_segment()
         {
             if (eof)
@@ -262,7 +262,7 @@ namespace farm
             size_t run_index;
             bool operator>(const HeapNode &other) const { return key > other.key; }
         };
-
+        // sorts automatically inside with O(log k)
         std::priority_queue<HeapNode, std::vector<HeapNode>, std::greater<HeapNode>> heap;
         for (size_t r = 0; r < readers.size(); ++r)
             if (!readers[r]->eof)
@@ -272,10 +272,12 @@ namespace farm
         while (!heap.empty())
         {
             auto current = heap.top();
+            // the top item is already the lowest
             heap.pop();
             auto &reader = *readers[current.run_index];
             write_record(out, reader.key, reader.payload);
             ++written;
+            // reads next item from the file
             reader.advance();
             if (!reader.eof)
                 heap.push(HeapNode{reader.key, current.run_index});
@@ -626,7 +628,6 @@ namespace farm
         SafeQueue<SortedTask> sorted_queue(DEGREE * WORKERS);
 
         // Write queue: Keep it minimal to avoid buffering segments
-        // num_writers (2) means max 2 segments buffered in write queue
         SafeQueue<WriteTask> write_queue(num_writers); // One per writer - no extra buffering
 
         std::atomic<size_t> tasks_sorted{0};
